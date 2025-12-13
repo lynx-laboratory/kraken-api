@@ -1,0 +1,69 @@
+name: Tests + Coverage Badge
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  test_pr:
+    name: PR - tests + coverage (no commit)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install
+        run: yarn --frozen-lockfile
+
+      - name: Run tests with coverage
+        run: yarn test:coverage
+
+  badge_master:
+    name: Master - update coverage badge
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install
+        run: yarn --frozen-lockfile
+
+      - name: Run tests with coverage
+        run: yarn test:coverage
+
+      - name: Generate coverage badge
+        run: node scripts/gen-coverage-badge.mjs
+
+      - name: Commit badge if changed
+        run: |
+          if git diff --quiet -- badges/coverage.svg; then
+            echo "No badge change."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add badges/coverage.svg
+          git commit -m "chore: update coverage badge [skip ci]"
+          git push
