@@ -78,7 +78,7 @@ describe('KrakenRestBase', () => {
     const now = 1700000000000;
     vi.spyOn(Date, 'now').mockReturnValue(now);
 
-    const base = new TestRestBase();
+    const base = new TestRestBase({ rateLimit: { mode: 'off' } });
     const a = BigInt(base._createNonce());
     const b = BigInt(base._createNonce());
     const c = BigInt(base._createNonce());
@@ -90,10 +90,10 @@ describe('KrakenRestBase', () => {
   it('createNonce() jumps base on a new millisecond', () => {
     const spy = vi.spyOn(Date, 'now');
     spy.mockReturnValueOnce(1700000000000);
-    spy.mockReturnValueOnce(1700000000000); // same ms => +1
-    spy.mockReturnValueOnce(1700000000001); // next ms => reset to ms*1000
+    spy.mockReturnValueOnce(1700000000000);
+    spy.mockReturnValueOnce(1700000000001);
 
-    const base = new TestRestBase();
+    const base = new TestRestBase({ rateLimit: { mode: 'off' } });
     const a = BigInt(base._createNonce());
     const b = BigInt(base._createNonce());
     const c = BigInt(base._createNonce());
@@ -481,5 +481,106 @@ describe('KrakenRestBase', () => {
     expect(init.headers['User-Agent']).toBe('lynx-crypto-kraken-client/0.1.0');
     expect(String(init.body)).toMatch(/nonce=\d+/);
     expect(String(init.body)).toContain('id=EXPORT123');
+  });
+
+  it('retries on Kraken EAPI:Rate limit exceeded and eventually returns result', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    const rateLimitResp: ResponseLike = {
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: vi.fn(async () => ({
+        error: ['EAPI:Rate limit exceeded'],
+        result: {},
+      })),
+      text: vi.fn(async () => 'x'),
+      arrayBuffer: vi.fn(async () => new ArrayBuffer(0)),
+      headers: { get: vi.fn(() => 'application/json') },
+    };
+
+    const okResp = makeOkJsonResponse({ hello: 'world' });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(rateLimitResp)
+      .mockResolvedValueOnce(okResp);
+
+    (globalThis as any).fetch = fetchMock;
+
+    const base = new TestRestBase(); // default: retry enabled
+
+    const p = base.publicGet('/0/public/Test');
+
+    // first retry uses exponential base 250ms (jitter deterministic)
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(p).resolves.toEqual({ hello: 'world' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries on Kraken EService: Throttled: <unix timestamp> and waits until timestamp', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    // now = 1700000000000ms => 1700000000s
+    vi.spyOn(Date, 'now').mockReturnValue(1700000000000);
+
+    const throttledResp: ResponseLike = {
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: vi.fn(async () => ({
+        error: ['EService: Throttled: 1700000001'],
+        result: {},
+      })),
+      text: vi.fn(async () => 'x'),
+      arrayBuffer: vi.fn(async () => new ArrayBuffer(0)),
+      headers: { get: vi.fn(() => 'application/json') },
+    };
+
+    const okResp = makeOkJsonResponse({ ok: true });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(throttledResp)
+      .mockResolvedValueOnce(okResp);
+
+    (globalThis as any).fetch = fetchMock;
+
+    const base = new TestRestBase();
+
+    const p = base.publicGet('/0/public/Test');
+
+    // should wait ~1000ms (until unix second 1700000001)
+    await vi.advanceTimersByTimeAsync(1000);
+
+    await expect(p).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries on HTTP 429 and succeeds on next attempt', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeHttpErrorResponse({ status: 429, statusText: 'Too Many Requests' }),
+      )
+      .mockResolvedValueOnce(makeOkJsonResponse({ ok: true }));
+
+    (globalThis as any).fetch = fetchMock;
+
+    const base = new TestRestBase();
+
+    const p = base.publicGet('/0/public/Test');
+
+    // first retry uses exponential base 250ms (jitter deterministic)
+    await vi.advanceTimersByTimeAsync(250);
+
+    await expect(p).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

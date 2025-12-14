@@ -94,6 +94,8 @@ export class KrakenWebsocketBase {
   private readonly pending = new Map<number, PendingRequest>();
   private readonly messageHandlers = new Set<KrakenWsMessageHandler>();
 
+  private reconnectAttempts = 0;
+
   constructor(options: KrakenWebsocketConnectionOptions) {
     this.url = options.url;
     this.authToken = options.authToken;
@@ -139,6 +141,7 @@ export class KrakenWebsocketBase {
         this.ws = ws;
 
         ws.onopen = () => {
+          this.reconnectAttempts = 0;
           this.logger?.info?.('Kraken WS connected', { url: this.url });
           this.connectingPromise = null;
           resolve();
@@ -164,15 +167,38 @@ export class KrakenWebsocketBase {
           this.pending.clear();
 
           if (!this.manuallyClosed && this.autoReconnect) {
+            this.reconnectAttempts++;
+
+            // exponential backoff with caps + jitter
+            const base = this.reconnectDelayMs; // your configured base (default 1000)
+            const exp = Math.min(
+              30_000,
+              base * Math.pow(2, this.reconnectAttempts - 1),
+            );
+
+            // After several failures, slow down to >= 5s as Kraken suggests post-maintenance.
+            const minAfterMany = this.reconnectAttempts >= 4 ? 5_000 : 0;
+
+            const delay = Math.max(minAfterMany, exp);
+            const jittered = Math.max(
+              0,
+              Math.floor(delay * (0.8 + Math.random() * 0.4)),
+            );
+
             setTimeout(() => {
-              this.logger?.info?.('Kraken WS reconnecting', { url: this.url });
+              this.logger?.info?.('Kraken WS reconnecting', {
+                url: this.url,
+                attempt: this.reconnectAttempts,
+                delayMs: jittered,
+              });
+
               void this.connect().catch((err) => {
                 this.logger?.error?.('Kraken WS reconnect failed', {
                   url: this.url,
                   error: err,
                 });
               });
-            }, this.reconnectDelayMs);
+            }, jittered);
           }
         };
 

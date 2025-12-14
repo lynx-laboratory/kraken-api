@@ -15,7 +15,7 @@ TypeScript client for **Kraken SPOT**:
 
 See [Kraken Official Documentation](https://docs.kraken.com/api/docs/category/guides)
 
-IMPORTANT
+## Important
 
 - This package is currently **SPOT only**. It does **not** implement Kraken Futures.
 - Unofficial project. Not affiliated with Kraken.
@@ -25,24 +25,15 @@ IMPORTANT
 ## Install
 
 NPM:
-
-```
-npm i @lynx-crypto/kraken-api
-```
+`npm i @lynx-crypto/kraken-api`
 
 Yarn:
-
-```
-yarn add @lynx-crypto/kraken-api
-```
+`yarn add @lynx-crypto/kraken-api`
 
 pnpm:
+`pnpm add @lynx-crypto/kraken-api`
 
-```
-pnpm add @lynx-crypto/kraken-api
-```
-
-Node support
+### Node support
 
 - Node >= 18 recommended (uses built-in fetch / AbortController)
 
@@ -52,14 +43,20 @@ Node support
 
 ESM:
 
-```
-import { KrakenSpotRestClient, KrakenSpotWebsocketV2Client } from "@lynx-crypto/kraken-api";
+```ts
+import {
+  KrakenSpotRestClient,
+  KrakenSpotWebsocketV2Client,
+} from '@lynx-crypto/kraken-api';
 ```
 
 CJS:
 
-```
-const { KrakenSpotRestClient, KrakenSpotWebsocketV2Client } = require("@lynx-crypto/kraken-api");
+```js
+const {
+  KrakenSpotRestClient,
+  KrakenSpotWebsocketV2Client,
+} = require('@lynx-crypto/kraken-api');
 ```
 
 ---
@@ -71,9 +68,9 @@ const { KrakenSpotRestClient, KrakenSpotWebsocketV2Client } = require("@lynx-cry
 ```ts
 const kraken = new KrakenSpotRestClient({
   // Optional:
-  //   baseUrl: "https://api.kraken.com",
-  //   timeoutMs: 10_000,
-  //   userAgent: "my-app/1.0.0",
+  // baseUrl: "https://api.kraken.com",
+  // timeoutMs: 10_000,
+  // userAgent: "my-app/1.0.0",
 
   // Required for private endpoints:
   apiKey: process.env.KRAKEN_API_KEY,
@@ -81,26 +78,123 @@ const kraken = new KrakenSpotRestClient({
 
   // Optional logger:
   // logger: console,
+
+  // Optional rate limiting:
+  // rateLimit: { mode: "auto" },
 });
 ```
 
 ### Public endpoint example
 
-(Your exact public endpoints depend on what you’ve implemented in src/spot/rest.)
-
-Example shape:
+(Exact public endpoints depend on what you’ve implemented under src/spot/rest.)
 
 ```ts
 const serverTime = await kraken.public.getServerTime();
+console.log(serverTime);
 ```
 
 ### Private endpoint example
 
-(Your exact private endpoints depend on what you’ve implemented in src/spot/rest.)
+(Exact private endpoints depend on what you’ve implemented under src/spot/rest.)
 
-Example shape:
+```ts
 const balances = await kraken.accountData.getAccountBalance();
-console.log("USD:", balances["ZUSD"]);
+console.log('USD:', balances['ZUSD']);
+```
+
+---
+
+## REST rate limiting & retries
+
+This library supports Kraken-style rate limiting with optional automatic retries:
+
+- Lightweight in-memory token bucket limiter by default
+- Automatic retries are configurable
+- Handles:
+  - EAPI:Rate limit exceeded
+  - EService: Throttled: <unix timestamp>
+  - HTTP 429 Too Many Requests
+
+Example:
+
+```ts
+const kraken = new KrakenSpotRestClient({
+  apiKey: process.env.KRAKEN_API_KEY,
+  apiSecret: process.env.KRAKEN_API_SECRET,
+  rateLimit: {
+    mode: 'auto',
+    tier: 'starter',
+    retryOnRateLimit: true,
+    maxRetries: 5,
+    // restCostFn: (path) => (path.includes("Ledgers") ? 2 : 1),
+  },
+});
+```
+
+Disable built-in throttling:
+
+```ts
+rateLimit: {
+  mode: 'off';
+}
+```
+
+### Redis rate limiting (multi-process / multi-container)
+
+If you run multiple Node processes, Docker containers, or workers, they all share the same Kraken IP-level limits. In-memory rate limiting only protects a single process.
+
+For cross-process coordination, you can use the Redis-backed token bucket limiter.
+
+Example (you provide the Redis client + EVAL wrapper):
+
+```ts
+import { KrakenSpotRestClient } from '@lynx-crypto/kraken-api';
+import { RedisTokenBucketLimiter } from '@lynx-crypto/kraken-api/base/redisRateLimit';
+
+// Your Redis EVAL wrapper should return a number:
+// - 0 means "proceed now"
+// - >0 means "wait this many ms then retry"
+const evalRedis = async (
+  key: string,
+  maxCounter: number,
+  decayPerSec: number,
+  cost: number,
+  ttlSeconds: number,
+  minWaitMs: number,
+): Promise<number> => {
+  // Example shape (pseudo-code):
+  // return await redis.eval(luaScript, { keys: [key], arguments: [maxCounter, decayPerSec, cost, ttlSeconds, minWaitMs] });
+  return 0;
+};
+
+const kraken = new KrakenSpotRestClient({
+  apiKey: process.env.KRAKEN_API_KEY,
+  apiSecret: process.env.KRAKEN_API_SECRET,
+  rateLimit: {
+    mode: 'auto',
+    tier: 'starter',
+    retryOnRateLimit: true,
+    maxRetries: 5,
+
+    // Cross-process limiter (Redis):
+    redis: {
+      limiter: new RedisTokenBucketLimiter({
+        key: 'kraken:rest:global',
+        maxCounter: 15,
+        decayPerSec: 0.33,
+        ttlSeconds: 30,
+        minWaitMs: 50,
+        evalRedis,
+      }),
+    },
+  },
+});
+```
+
+Notes:
+
+- Redis is optional. Only use it when you need cross-process coordination.
+- If Redis is down / eval fails, the request fails (no silent bypass).
 
 ---
 
@@ -108,77 +202,57 @@ console.log("USD:", balances["ZUSD"]);
 
 This package provides a top-level v2 WS client that creates:
 
-- a **public connection** (market data + admin)
-- a **private/auth connection** (user-data + user-trading)
+- a public connection (market data + admin)
+- a private/auth connection (user-data + user-trading)
 
 ### Create a WS v2 client
 
 ```ts
 const ws = new KrakenSpotWebsocketV2Client({
-  // Optional override URLs:
   // publicUrl: "wss://ws.kraken.com/v2",
   // privateUrl: "wss://ws-auth.kraken.com/v2",
 
-  // IMPORTANT: private WS requires a session token
   authToken: process.env.KRAKEN_WS_AUTH_TOKEN,
 
-  // Optional connection tuning:
   // autoReconnect: true,
   // reconnectDelayMs: 1_000,
   // requestTimeoutMs: 10_000,
 
-  // Optional logger:
   // logger: console,
-
-  // Optional WS implementation:
-  // - In Node, ws is used by default.
-  // - In browsers, pass the browser WebSocket if needed.
   // WebSocketImpl: WebSocket,
 });
 ```
 
 Available sub-APIs:
 
-- `ws.admin` (public connection)
-- `ws.marketData` (public connection)
-- `ws.userData` (private connection)
-- `ws.userTrading` (private connection)
+- `ws.admin`
+- `ws.marketData`
+- `ws.userData`
+- `ws.userTrading`
 
 ### Connect
-
-You can connect explicitly:
 
 ```ts
 await ws.publicConnection.connect();
 await ws.privateConnection.connect();
 ```
 
-Or let calls auto-connect (methods like `request()/sendRaw()` will connect if needed).
-
 ---
 
 ## WS routing: receiving streaming messages
 
-The underlying `KrakenWebsocketBase` supports message fan-out:
-
 ```ts
 const unsubscribe = ws.publicConnection.addMessageHandler((msg) => {
-  // msg is already JSON-parsed when possible
-  // route based on msg.channel / msg.type, etc.
-  // console.log(msg);
+  // route by msg.channel / msg.type
 });
 
-// later:
+// later
 unsubscribe();
 ```
 
 ---
 
 ## WS v2: Admin
-
-Admin utilities exist on the public connection (ex: ping/status/heartbeat).
-
-Example:
 
 ```ts
 const pong = await ws.admin.ping({ reqId: 123 });
@@ -187,147 +261,79 @@ if (!pong.success) console.error('ping failed:', pong.error);
 
 ---
 
-## WS v2: Market Data (public)
-
-Market data subscriptions live on ws.marketData (public connection).
-(Exact channel helpers depend on your implemented market-data modules.)
-
-Typical pattern:
-
-1. call subscribe helper (await ack)
-2. listen via `addMessageHandler` and route messages by channel/type
-
----
-
 ## WS v2: User Data (authenticated)
-
-User-data streams live on `ws.userData` (private connection).
 
 Implemented channels:
 
-- executions (order lifecycle + fills)
-- balances (balance snapshots + ledger-derived updates)
+- `executions`
+- `balances`
 
-Example (executions):
+### Executions example
 
-```
+```ts
 const ack = await ws.userData.subscribeExecutions({
-    snap_trades: true,
-    snap_orders: true,
-    order_status: true,
+  snap_trades: true,
+  snap_orders: true,
+  order_status: true,
 });
-
-if (!ack.success) console.error("executions subscribe error:", ack.error);
 ```
 
-Then route messages:
-
-```
-ws.privateConnection.addMessageHandler((msg: any) => {
-    if (msg?.channel === "executions" && (msg.type === "snapshot" || msg.type === "update")) {
-        for (const report of msg.data ?? []) {
-            console.log("[exec]", report.exec_type, report.order_id, report.order_status);
-        }
+```ts
+ws.privateConnection.addMessageHandler((msg) => {
+  if (msg?.channel === 'executions') {
+    for (const report of msg.data ?? []) {
+      console.log(report.order_id, report.order_status);
     }
+  }
 });
 ```
 
-Example (balances):
+### Balances example
 
-````ts
+```ts
 const ack2 = await ws.userData.subscribeBalances({ snapshot: true });
-if (!ack2.success) console.error("balances subscribe error:", ack2.error);
+```
 
-ws.privateConnection.addMessageHandler((msg: any) => {
-    if (msg?.channel === "balances" && msg.type === "snapshot") {
-        for (const asset of msg.data ?? []) {
-            console.log("[balances snapshot]", asset.asset, "total:", asset.balance);
-        }
-    }
-    if (msg?.channel === "balances" && msg.type === "update") {
-            for (const tx of msg.data ?? []) {
-            console.log("[balances update]", tx.asset, tx.type, "delta:", tx.amount, "new:", tx.balance);
-        }
-    }
+```ts
+ws.privateConnection.addMessageHandler((msg) => {
+  if (msg?.channel === 'balances') {
+    console.log(msg.data);
+  }
 });
+```
 
 ---
 
 ## WS v2: User Trading (authenticated RPC)
 
-User-trading methods live on `ws.userTrading` (private connection).
-
 Implemented RPCs:
 
 - `add_order`
 - `amend_order`
-- `edit_order` (legacy)
 - `cancel_order`
 - `cancel_all`
-- `cancel_all_orders_after` (Dead Man’s Switch)
+- `cancel_all_orders_after`
 - `batch_add`
 - `batch_cancel`
 
 Add order:
+
 ```ts
 const res = await ws.userTrading.addOrder({
-    order_type: "limit",
-    side: "buy",
-    symbol: "BTC/USD",
-    order_qty: 0.01,
-    limit_price: 30000,
-    time_in_force: "gtc",
-    cl_ord_id: "demo-0001",
+  order_type: 'limit',
+  side: 'buy',
+  symbol: 'BTC/USD',
+  order_qty: 0.01,
+  limit_price: 30000,
+  time_in_force: 'gtc',
 });
-
-
-if (res.success) console.log("order_id:", res.result?.order_id);
-else console.error("add_order error:", res.error);
-````
+```
 
 Dead Man’s Switch:
 
-```
-// recommended: refresh every 15–30s with timeout=60
+```ts
 await ws.userTrading.cancelAllOrdersAfter({ timeout: 60 });
 ```
-
----
-
-## Options reference
-
-### `KrakenSpotRestClient` options
-
-- `baseUrl?: string`
-  Default: https://api.kraken.com
-- `timeoutMs?: number`
-  Default: 10_000
-- `userAgent?: string`
-- `apiKey?: string`
-  Required for private endpoints
-- `apiSecret?: string` (base64)
-  Required for private endpoints
-- `logger?: KrakenLogger`
-  debug/info/warn/error(msg, meta?)
-
-### KrakenSpotWebsocketV2Client options
-
-- `publicUrl?: string`
-  Default: wss://ws.kraken.com/v2
-- `privateUrl?: string`
-  Default: wss://ws-auth.kraken.com/v2
-- `authToken?: string`
-  Required for authenticated/private connection features
-- `WebSocketImpl?: constructor`
-  Optional override (browser / custom WS)
-- `autoReconnect?: boolean`
-  Default: true
-- `reconnectDelayMs?: number`
-  Default: 1000
-- `requestTimeoutMs?: number`
-  Default: 10_000
-- `logger?: KrakenWebsocketLogger`
-  debug/info/warn/error(msg, meta?)
 
 ---
 
@@ -349,11 +355,11 @@ Build:
 
 ## Security notes
 
-- Keep API keys/secrets out of source control.
-- Use least-privilege API key permissions.
+- Keep API keys and secrets out of source control
+- Use least-privilege API key permissions
 
 ---
 
 ## License
 
-MIT (see LICENSE)
+MIT (see LICENSE.md)
