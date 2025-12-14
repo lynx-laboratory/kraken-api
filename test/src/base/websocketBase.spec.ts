@@ -249,7 +249,7 @@ describe('KrakenWebsocketBase', () => {
     // unexpected close triggers reconnect timer
     sock1.serverClose({ code: 1006 });
 
-    await vi.advanceTimersByTimeAsync(51);
+    await vi.advanceTimersByTimeAsync(1001);
 
     expect(FakeWebSocket.instances).toHaveLength(2);
 
