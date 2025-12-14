@@ -1,14 +1,15 @@
 # @lynx-crypto/kraken-api
 
-![Build](https://github.com/lynx-laboratory/kraken-api/actions/workflows/ci.yml/badge.svg)
-![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/lynx-laboratory/kraken-api/master/badges/coverage.json)
-![npm](https://img.shields.io/npm/v/@lynx-crypto/kraken-api)
-![minzipped size](https://img.shields.io/bundlephobia/minzip/@lynx-crypto/kraken-api)
-![downloads](https://img.shields.io/npm/dm/@lynx-crypto/kraken-api)
-![last commit](https://img.shields.io/github/last-commit/lynx-laboratory/kraken-api)
-![license](https://img.shields.io/npm/l/@lynx-crypto/kraken-api)
+[![Build](https://img.shields.io/github/actions/workflow/status/lynx-laboratory/kraken-api/coverage-badge.yml?branch=master)](https://github.com/lynx-laboratory/kraken-api/actions/workflows/coverage-badge.yml)
+[![Coverage](https://raw.githubusercontent.com/lynx-laboratory/kraken-api/master/badges/coverage.svg)](https://github.com/lynx-laboratory/kraken-api/actions/workflows/coverage-badge.yml)
+[![npm](https://img.shields.io/npm/v/%40lynx-crypto%2Fkraken-api)](https://www.npmjs.com/package/@lynx-crypto/kraken-api)
+[![downloads](https://img.shields.io/npm/dm/%40lynx-crypto%2Fkraken-api)](https://www.npmjs.com/package/@lynx-crypto/kraken-api)
+[![bundlephobia](https://img.shields.io/bundlephobia/minzip/%40lynx-crypto%2Fkraken-api)](https://bundlephobia.com/package/@lynx-crypto/kraken-api)
+[![last commit](https://img.shields.io/github/last-commit/lynx-laboratory/kraken-api?branch=master)](https://github.com/lynx-laboratory/kraken-api/commits/master)
+[![license](https://img.shields.io/github/license/lynx-laboratory/kraken-api)](./LICENSE.md)
 
 TypeScript client for **Kraken SPOT**:
+
 - **REST API** (public + private endpoints)
 - **WebSocket v2** (public market-data + authenticated user-data/trading)
 
@@ -24,21 +25,25 @@ IMPORTANT
 ## Install
 
 NPM:
+
 ```
 npm i @lynx-crypto/kraken-api
 ```
 
 Yarn:
+
 ```
 yarn add @lynx-crypto/kraken-api
 ```
 
 pnpm:
+
 ```
 pnpm add @lynx-crypto/kraken-api
 ```
 
 Node support
+
 - Node >= 18 recommended (uses built-in fetch / AbortController)
 
 ---
@@ -46,11 +51,13 @@ Node support
 ## Quick start
 
 ESM:
+
 ```
 import { KrakenSpotRestClient, KrakenSpotWebsocketV2Client } from "@lynx-crypto/kraken-api";
 ```
 
 CJS:
+
 ```
 const { KrakenSpotRestClient, KrakenSpotWebsocketV2Client } = require("@lynx-crypto/kraken-api");
 ```
@@ -63,17 +70,17 @@ const { KrakenSpotRestClient, KrakenSpotWebsocketV2Client } = require("@lynx-cry
 
 ```ts
 const kraken = new KrakenSpotRestClient({
-// Optional:
-//   baseUrl: "https://api.kraken.com",
-//   timeoutMs: 10_000,
-//   userAgent: "my-app/1.0.0",
+  // Optional:
+  //   baseUrl: "https://api.kraken.com",
+  //   timeoutMs: 10_000,
+  //   userAgent: "my-app/1.0.0",
 
-    // Required for private endpoints:
-    apiKey: process.env.KRAKEN_API_KEY,
-    apiSecret: process.env.KRAKEN_API_SECRET,
+  // Required for private endpoints:
+  apiKey: process.env.KRAKEN_API_KEY,
+  apiSecret: process.env.KRAKEN_API_SECRET,
 
-    // Optional logger:
-    // logger: console,
+  // Optional logger:
+  // logger: console,
 });
 ```
 
@@ -82,6 +89,7 @@ const kraken = new KrakenSpotRestClient({
 (Your exact public endpoints depend on what you’ve implemented in src/spot/rest.)
 
 Example shape:
+
 ```ts
 const serverTime = await kraken.public.getServerTime();
 ```
@@ -107,29 +115,30 @@ This package provides a top-level v2 WS client that creates:
 
 ```ts
 const ws = new KrakenSpotWebsocketV2Client({
-// Optional override URLs:
-// publicUrl: "wss://ws.kraken.com/v2",
-// privateUrl: "wss://ws-auth.kraken.com/v2",
+  // Optional override URLs:
+  // publicUrl: "wss://ws.kraken.com/v2",
+  // privateUrl: "wss://ws-auth.kraken.com/v2",
 
-    // IMPORTANT: private WS requires a session token
-    authToken: process.env.KRAKEN_WS_AUTH_TOKEN,
+  // IMPORTANT: private WS requires a session token
+  authToken: process.env.KRAKEN_WS_AUTH_TOKEN,
 
-    // Optional connection tuning:
-    // autoReconnect: true,
-    // reconnectDelayMs: 1_000,
-    // requestTimeoutMs: 10_000,
+  // Optional connection tuning:
+  // autoReconnect: true,
+  // reconnectDelayMs: 1_000,
+  // requestTimeoutMs: 10_000,
 
-    // Optional logger:
-    // logger: console,
+  // Optional logger:
+  // logger: console,
 
-    // Optional WS implementation:
-    // - In Node, ws is used by default.
-    // - In browsers, pass the browser WebSocket if needed.
-    // WebSocketImpl: WebSocket,
-
+  // Optional WS implementation:
+  // - In Node, ws is used by default.
+  // - In browsers, pass the browser WebSocket if needed.
+  // WebSocketImpl: WebSocket,
 });
 ```
+
 Available sub-APIs:
+
 - `ws.admin` (public connection)
 - `ws.marketData` (public connection)
 - `ws.userData` (private connection)
@@ -138,6 +147,7 @@ Available sub-APIs:
 ### Connect
 
 You can connect explicitly:
+
 ```ts
 await ws.publicConnection.connect();
 await ws.privateConnection.connect();
@@ -153,9 +163,9 @@ The underlying `KrakenWebsocketBase` supports message fan-out:
 
 ```ts
 const unsubscribe = ws.publicConnection.addMessageHandler((msg) => {
-    // msg is already JSON-parsed when possible
-    // route based on msg.channel / msg.type, etc.
-    // console.log(msg);
+  // msg is already JSON-parsed when possible
+  // route based on msg.channel / msg.type, etc.
+  // console.log(msg);
 });
 
 // later:
@@ -169,9 +179,10 @@ unsubscribe();
 Admin utilities exist on the public connection (ex: ping/status/heartbeat).
 
 Example:
+
 ```ts
 const pong = await ws.admin.ping({ reqId: 123 });
-if (!pong.success) console.error("ping failed:", pong.error);
+if (!pong.success) console.error('ping failed:', pong.error);
 ```
 
 ---
@@ -182,6 +193,7 @@ Market data subscriptions live on ws.marketData (public connection).
 (Exact channel helpers depend on your implemented market-data modules.)
 
 Typical pattern:
+
 1. call subscribe helper (await ack)
 2. listen via `addMessageHandler` and route messages by channel/type
 
@@ -197,6 +209,7 @@ Implemented channels:
 - balances (balance snapshots + ledger-derived updates)
 
 Example (executions):
+
 ```
 const ack = await ws.userData.subscribeExecutions({
     snap_trades: true,
@@ -208,6 +221,7 @@ if (!ack.success) console.error("executions subscribe error:", ack.error);
 ```
 
 Then route messages:
+
 ```
 ws.privateConnection.addMessageHandler((msg: any) => {
     if (msg?.channel === "executions" && (msg.type === "snapshot" || msg.type === "update")) {
@@ -219,7 +233,8 @@ ws.privateConnection.addMessageHandler((msg: any) => {
 ```
 
 Example (balances):
-```ts
+
+````ts
 const ack2 = await ws.userData.subscribeBalances({ snapshot: true });
 if (!ack2.success) console.error("balances subscribe error:", ack2.error);
 
@@ -268,9 +283,10 @@ const res = await ws.userTrading.addOrder({
 
 if (res.success) console.log("order_id:", res.result?.order_id);
 else console.error("add_order error:", res.error);
-```
+````
 
 Dead Man’s Switch:
+
 ```
 // recommended: refresh every 15–30s with timeout=60
 await ws.userTrading.cancelAllOrdersAfter({ timeout: 60 });
