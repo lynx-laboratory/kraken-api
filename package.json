@@ -1,6 +1,6 @@
 {
   "name": "@lynx-crypto/kraken-api",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "TypeScript Kraken SPOT REST client + WebSocket v2 client (Spot market only).",
   "license": "MIT",
   "author": "Brett Blashko",
