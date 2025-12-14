@@ -1,7 +1,7 @@
 # @lynx-crypto/kraken-api
 
 [![Build](https://img.shields.io/github/actions/workflow/status/lynx-laboratory/kraken-api/coverage-badge.yml?branch=master)](https://github.com/lynx-laboratory/kraken-api/actions/workflows/coverage-badge.yml)
-[![Coverage](https://raw.githubusercontent.com/lynx-laboratory/kraken-api/master/badges/coverage.svg)](https://github.com/lynx-laboratory/kraken-api/actions/workflows/coverage-badge.yml)
+[![Coverage](https://github.com/lynx-laboratory/kraken-api/raw/master/badges/coverage.svg)](https://github.com/lynx-laboratory/kraken-api/actions/workflows/coverage-badge.yml)
 [![npm](https://img.shields.io/npm/v/%40lynx-crypto%2Fkraken-api)](https://www.npmjs.com/package/@lynx-crypto/kraken-api)
 [![downloads](https://img.shields.io/npm/dm/%40lynx-crypto%2Fkraken-api)](https://www.npmjs.com/package/@lynx-crypto/kraken-api)
 [![bundlephobia](https://img.shields.io/bundlephobia/minzip/%40lynx-crypto%2Fkraken-api)](https://bundlephobia.com/package/@lynx-crypto/kraken-api)
