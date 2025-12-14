@@ -6,11 +6,11 @@
   "author": "Brett Blashko",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lynx-crypto/kraken-api.git"
+    "url": "git+https://github.com/lynx-laboratory/kraken-api.git"
   },
-  "homepage": "https://github.com/lynx-crypto/kraken-api#readme",
+  "homepage": "https://github.com/lynx-laboratory/kraken-api#readme",
   "bugs": {
-    "url": "https://github.com/lynx-crypto/kraken-api/issues"
+    "url": "https://github.com/lynx-laboratory/kraken-api/issues"
   },
   "keywords": [
     "kraken",
