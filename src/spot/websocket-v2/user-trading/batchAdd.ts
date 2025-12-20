@@ -2,12 +2,14 @@ import {
   KrakenWebsocketBase,
   KrakenWsMethodResponseEnvelope,
 } from '../../../base/websocketBase';
+import {
+  KrakenWsPriceType,
+  KrakenWsTriggerReference,
+} from '../../../types/types';
 import type {
   KrakenWsOrderSide,
   KrakenWsOrderType,
   KrakenWsTimeInForce,
-  KrakenWsPriceType,
-  KrakenWsTriggerReference,
   KrakenWsAddOrderConditional,
   KrakenWsAddOrderTriggers,
   KrakenWsFeePreference,

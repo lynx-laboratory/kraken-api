@@ -187,8 +187,6 @@ export type KrakenWsExecutionType = Executions.KrakenWsExecutionType;
 export type KrakenWsOrderStatus = Executions.KrakenWsOrderStatus;
 export type KrakenWsLiquidityIndicator = Executions.KrakenWsLiquidityIndicator;
 export type KrakenWsPositionStatus = Executions.KrakenWsPositionStatus;
-export type KrakenWsTriggerReference = Executions.KrakenWsTriggerReference;
-export type KrakenWsPriceType = Executions.KrakenWsPriceType;
 export type KrakenWsTriggerStatus = Executions.KrakenWsTriggerStatus;
 export type KrakenWsExecutionTimeInForce =
   Executions.KrakenWsExecutionTimeInForce;

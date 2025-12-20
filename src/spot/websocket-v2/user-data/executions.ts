@@ -2,6 +2,10 @@ import {
   KrakenWebsocketBase,
   KrakenWsMethodResponseEnvelope,
 } from '../../../base/websocketBase';
+import {
+  KrakenWsPriceType,
+  KrakenWsTriggerReference,
+} from '../../../types/types';
 
 /**
  * Exec type for executions channel events.
@@ -38,16 +42,6 @@ export type KrakenWsLiquidityIndicator = 'm' | 't';
  * Position status for margin orders.
  */
 export type KrakenWsPositionStatus = 'opened' | 'closing' | 'closed';
-
-/**
- * Trigger reference price.
- */
-export type KrakenWsTriggerReference = 'index' | 'last';
-
-/**
- * Trigger price type.
- */
-export type KrakenWsPriceType = 'static' | 'pct' | 'quote';
 
 /**
  * Trigger status on triggered orders.

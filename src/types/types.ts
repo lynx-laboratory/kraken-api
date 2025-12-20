@@ -41,3 +41,6 @@ export interface KrakenLogger {
   warn?(msg: string, meta?: unknown): void;
   error?(msg: string, meta?: unknown): void;
 }
+
+export type KrakenWsTriggerReference = 'index' | 'last';
+export type KrakenWsPriceType = 'static' | 'pct' | 'quote';

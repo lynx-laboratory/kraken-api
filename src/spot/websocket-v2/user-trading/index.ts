@@ -339,8 +339,6 @@ export type KrakenWsOrderType = AddOrder.KrakenWsOrderType;
 export type KrakenWsTimeInForce = AddOrder.KrakenWsTimeInForce;
 export type KrakenWsFeePreference = AddOrder.KrakenWsFeePreference;
 export type KrakenWsStpType = AddOrder.KrakenWsStpType;
-export type KrakenWsPriceType = AddOrder.KrakenWsPriceType;
-export type KrakenWsTriggerReference = AddOrder.KrakenWsTriggerReference;
 export type KrakenWsAddOrderTriggers = AddOrder.KrakenWsAddOrderTriggers;
 export type KrakenWsAddOrderConditional = AddOrder.KrakenWsAddOrderConditional;
 

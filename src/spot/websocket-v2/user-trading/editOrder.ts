@@ -2,9 +2,9 @@ import {
   KrakenWebsocketBase,
   KrakenWsMethodResponseEnvelope,
 } from '../../../base/websocketBase';
+import { KrakenWsTriggerReference } from '../../../types/types';
 import type {
   KrakenWsFeePreference,
-  KrakenWsTriggerReference,
   KrakenWsAddOrderTriggers,
 } from './addOrder';
 

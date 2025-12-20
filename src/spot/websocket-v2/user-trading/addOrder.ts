@@ -2,6 +2,10 @@ import {
   KrakenWebsocketBase,
   KrakenWsMethodResponseEnvelope,
 } from '../../../base/websocketBase';
+import {
+  KrakenWsPriceType,
+  KrakenWsTriggerReference,
+} from '../../../types/types';
 
 export type KrakenWsOrderSide = 'buy' | 'sell';
 
@@ -17,8 +21,6 @@ export type KrakenWsOrderType =
   | 'trailing-stop-limit'
   | 'settle-position';
 
-export type KrakenWsTriggerReference = 'index' | 'last';
-export type KrakenWsPriceType = 'static' | 'pct' | 'quote';
 export type KrakenWsTimeInForce = 'gtc' | 'gtd' | 'ioc';
 export type KrakenWsFeePreference = 'base' | 'quote';
 export type KrakenWsStpType = 'cancel_newest' | 'cancel_oldest' | 'cancel_both';

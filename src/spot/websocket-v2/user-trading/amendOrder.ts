@@ -2,7 +2,7 @@ import {
   KrakenWebsocketBase,
   KrakenWsMethodResponseEnvelope,
 } from '../../../base/websocketBase';
-import type { KrakenWsPriceType } from './addOrder';
+import { KrakenWsPriceType } from '../../../types/types';
 
 /**
  * Parameters for WS v2 amend_order.

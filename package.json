@@ -70,7 +70,17 @@
     "examples:spot:rest:market-data:order-book": "yarn example ./examples/spot/rest/market-data/07-order-book.ts",
     "examples:spot:rest:market-data:recent-trades": "yarn example ./examples/spot/rest/market-data/08-recent-trades.ts",
     "examples:spot:rest:market-data:recent-spreads": "yarn example ./examples/spot/rest/market-data/09-recent-spreads.ts",
-    "examples:spot:rest:trading:websockets-token": "yarn example ./examples/spot/rest/trading/01-websockets-token.ts"
+    "examples:spot:rest:trading:websockets-token": "yarn example ./examples/spot/rest/trading/01-websockets-token.ts",
+    "examples:spot:websocket-v2:admin:status": "yarn example ./examples/spot/websocket-v2/admin/01-status.ts",
+    "examples:spot:websocket-v2:admin:heartbeat": "yarn example ./examples/spot/websocket-v2/admin/02-heartbeat.ts",
+    "examples:spot:websocket-v2:admin:ping": "yarn example ./examples/spot/websocket-v2/admin/03-ping.ts",
+    "examples:spot:websocket-v2:market-data:trades": "yarn example ./examples/spot/websocket-v2/market-data/01-trades.ts",
+    "examples:spot:websocket-v2:market-data:ticker": "yarn example ./examples/spot/websocket-v2/market-data/02-ticker.ts",
+    "examples:spot:websocket-v2:market-data:ohlc": "yarn example ./examples/spot/websocket-v2/market-data/03-ohlc.ts",
+    "examples:spot:websocket-v2:market-data:book": "yarn example ./examples/spot/websocket-v2/market-data/04-book.ts",
+    "examples:spot:websocket-v2:market-data:instruments": "yarn example ./examples/spot/websocket-v2/market-data/05-instruments.ts",
+    "examples:spot:websocket-v2:user-data:balances": "yarn example ./examples/spot/websocket-v2/user-data/01-balances.ts",
+    "examples:spot:websocket-v2:user-data:executions": "yarn example ./examples/spot/websocket-v2/user-data/02-executions.ts"
   },
   "dependencies": {
     "ws": "^8.18.3"
