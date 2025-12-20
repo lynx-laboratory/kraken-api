@@ -45,6 +45,7 @@
     "node": ">=18"
   },
   "sideEffects": false,
+  "packageManager": "yarn@4.12.0",
   "scripts": {
     "build": "tsup",
     "clean": "rm -rf dist",
