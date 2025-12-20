@@ -254,13 +254,15 @@ export abstract class KrakenRestBase {
 
       // Kraken signing:
       // signature = base64( HMAC-SHA512( urlPath + SHA256(nonce + POSTdata) , base64Decode(apiSecret) ) )
-      const urlPath = path; // must be just the path, e.g. "/0/private/Balance"
       const sha256 = createHash('sha256')
         .update(nonce + bodyString)
         .digest();
       const secretBuffer = Buffer.from(this.apiSecret!, 'base64');
+
       const hmac = createHmac('sha512', secretBuffer);
-      const signature = hmac.update(urlPath + sha256).digest('base64');
+      hmac.update(path);
+      hmac.update(sha256);
+      const signature = hmac.digest('base64');
 
       this.logger?.debug?.('Kraken REST private POST request', {
         endpoint: path,
@@ -485,11 +487,10 @@ export abstract class KrakenRestBase {
       .digest();
 
     // HMAC-SHA512(path + sha256)
-    const hmac = createHmac('sha512', secret)
-      .update(path + sha256)
-      .digest('base64');
-
-    return hmac;
+    const hmac = createHmac('sha512', secret);
+    hmac.update(path);
+    hmac.update(sha256);
+    return hmac.digest('base64');
   }
 
   private async scheduleWithRetry<T>(

@@ -51,7 +51,26 @@
     "prepublishOnly": "yarn clean && yarn test && yarn build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "build:check": "node ./scripts/build-check.mjs",
+    "example": "yarn run build:check && tsx",
+    "examples:spot:rest:account-data:connect-private": "yarn example ./examples/spot/rest/account-data/00-connect-private.ts",
+    "examples:spot:rest:account-data:account-balance": "yarn example ./examples/spot/rest/account-data/01-account-balance.ts",
+    "examples:spot:rest:account-data:trade-balance": "yarn example ./examples/spot/rest/account-data/02-trade-balance.ts",
+    "examples:spot:rest:account-data:open-orders": "yarn example ./examples/spot/rest/account-data/03-open-orders.ts",
+    "examples:spot:rest:account-data:trades-history": "yarn example ./examples/spot/rest/account-data/04-trades-history.ts",
+    "examples:spot:rest:account-data:ledgers-info": "yarn example ./examples/spot/rest/account-data/05-ledgers-info.ts",
+    "examples:spot:rest:market-data:connect": "yarn example ./examples/spot/rest/market-data/00-connect.ts",
+    "examples:spot:rest:market-data:server-time": "yarn example ./examples/spot/rest/market-data/01-server-time.ts",
+    "examples:spot:rest:market-data:system-status": "yarn example ./examples/spot/rest/market-data/02-system-status.ts",
+    "examples:spot:rest:market-data:asset-info": "yarn example ./examples/spot/rest/market-data/03-asset-info.ts",
+    "examples:spot:rest:market-data:tradable-asset-pairs": "yarn example ./examples/spot/rest/market-data/04-tradable-asset-pairs.ts",
+    "examples:spot:rest:market-data:ticker": "yarn example ./examples/spot/rest/market-data/05-ticker.ts",
+    "examples:spot:rest:market-data:ohlc": "yarn example ./examples/spot/rest/market-data/06-ohlc.ts",
+    "examples:spot:rest:market-data:order-book": "yarn example ./examples/spot/rest/market-data/07-order-book.ts",
+    "examples:spot:rest:market-data:recent-trades": "yarn example ./examples/spot/rest/market-data/08-recent-trades.ts",
+    "examples:spot:rest:market-data:recent-spreads": "yarn example ./examples/spot/rest/market-data/09-recent-spreads.ts",
+    "examples:spot:rest:trading:websockets-token": "yarn example ./examples/spot/rest/trading/01-websockets-token.ts"
   },
   "dependencies": {
     "ws": "^8.18.3"
@@ -60,8 +79,10 @@
     "@types/node": "^25.0.1",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "4.0.15",
+    "dotenv": "^17.2.3",
     "prettier": "^3.7.4",
     "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.15"
   }

@@ -86,16 +86,12 @@ const kraken = new KrakenSpotRestClient({
 
 ### Public endpoint example
 
-(Exact public endpoints depend on what you’ve implemented under src/spot/rest.)
-
 ```ts
-const serverTime = await kraken.public.getServerTime();
+const serverTime = await kraken.marketData.getServerTime();
 console.log(serverTime);
 ```
 
 ### Private endpoint example
-
-(Exact private endpoints depend on what you’ve implemented under src/spot/rest.)
 
 ```ts
 const balances = await kraken.accountData.getAccountBalance();
@@ -233,8 +229,27 @@ Available sub-APIs:
 ### Connect
 
 ```ts
-await ws.publicConnection.connect();
-await ws.privateConnection.connect();
+import { WebSocket } from 'ws';
+import { KrakenWebsocketBase } from '@lynx-laboratory/kraken-api';
+
+// Public (no auth)
+const publicWs = new KrakenWebsocketBase({
+  url: 'wss://ws.kraken.com/v2',
+  WebSocketImpl: WebSocket,
+});
+
+// Private (auth)
+const privateWs = new KrakenWebsocketBase({
+  url: 'wss://ws-auth.kraken.com/v2',
+  authToken: process.env.KRAKEN_WS_TOKEN, // or however you fetch it
+  WebSocketImpl: WebSocket,
+});
+
+// Optional: explicit connect (idempotent)
+await publicWs.connect();
+await privateWs.connect();
+
+// ...then use request()/sendRaw()/addMessageHandler() as needed
 ```
 
 ---
@@ -242,7 +257,7 @@ await ws.privateConnection.connect();
 ## WS routing: receiving streaming messages
 
 ```ts
-const unsubscribe = ws.publicConnection.addMessageHandler((msg) => {
+const unsubscribe = ws..addMessageHandler((msg) => {
   // route by msg.channel / msg.type
 });
 

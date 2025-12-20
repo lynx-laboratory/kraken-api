@@ -363,7 +363,7 @@ export class KrakenWebsocketBase {
         try {
           const ws = this.ws;
 
-          // ✅ Hard guard: if closed between connect() and here, reject cleanly
+          // Hard guard: if closed between connect() and here, reject cleanly
           if (!ws || ws.readyState !== 1) {
             clearTimeout(timeoutId);
             this.pending.delete(reqId);
