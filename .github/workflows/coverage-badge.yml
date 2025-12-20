@@ -23,8 +23,11 @@ jobs:
           node-version: 20
           cache: yarn
 
+      - name: Enable Corepack (Yarn)
+        run: corepack enable
+
       - name: Install
-        run: yarn --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Run tests with coverage
         run: yarn test:coverage
@@ -45,8 +48,11 @@ jobs:
           node-version: 20
           cache: yarn
 
+      - name: Enable Corepack (Yarn)
+        run: corepack enable
+
       - name: Install
-        run: yarn --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Run tests with coverage
         run: yarn test:coverage
