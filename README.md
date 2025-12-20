@@ -8,94 +8,247 @@
 [![last commit](https://img.shields.io/github/last-commit/lynx-laboratory/kraken-api?branch=master)](https://github.com/lynx-laboratory/kraken-api/commits/master)
 [![license](https://img.shields.io/github/license/lynx-laboratory/kraken-api)](./LICENSE.md)
 
-TypeScript client for **Kraken SPOT**:
-
+A modern, strongly-typed TypeScript client for the **Kraken Spot API**, providing both **REST** and **WebSocket v2** access in a single package.
 - **REST API** (public + private endpoints)
 - **WebSocket v2** (public market-data + authenticated user-data/trading)
 
 See [Kraken Official Documentation](https://docs.kraken.com/api/docs/category/guides)
 
 ## Important
-
 - This package is currently **SPOT only**. It does **not** implement Kraken Futures.
 - Unofficial project. Not affiliated with Kraken.
 
 ---
 
-## Install
+## Features
 
-NPM:
-`npm i @lynx-crypto/kraken-api`
+### Spot REST API
+- Public market data (time, assets, pairs, ticker, OHLC, order book, trades, spreads)
+- Private account data (balances, orders, trades, ledgers, export reports)
+- Trading endpoints (add/amend/edit/cancel orders, batch operations)
+- Funding endpoints (deposits, withdrawals, transfers)
+- Earn endpoints (strategies, allocations, status)
+- Subaccounts (master account operations)
+- Transparency endpoints (pre-trade / post-trade data)
 
-Yarn:
-`yarn add @lynx-crypto/kraken-api`
-
-pnpm:
-`pnpm add @lynx-crypto/kraken-api`
-
-### Node support
-
-- Node >= 18 recommended (uses built-in fetch / AbortController)
+### Spot WebSocket v2 API
+- Public streams (ticker, trades, book, OHLC, instruments)
+- Private user streams (balances, executions)
+- Private trading RPC methods
+- Automatic request/response correlation (`req_id`)
+- Optional auto-reconnect with backoff
+- Works in Node.js (via `ws`) or browser environments
 
 ---
 
-## Quick start
+## Installation
 
-ESM:
+Using Yarn:
+
+```sh
+yarn add @lynx-crypto/kraken-api
+```
+
+Using npm:
+
+```sh
+npm install @lynx-crypto/kraken-api
+```
+
+---
+
+## Requirements
+
+- Node.js 18+ recommended
+- TypeScript 4.9+ recommended
+- For private endpoints:
+  - Kraken API key and secret
+  - Appropriate permissions enabled in Kraken
+  - “WebSocket interface” enabled for private WS usage
+
+---
+
+## Environment Variables (for private usage)
+
+```bash
+KRAKEN_API_KEY="your_api_key"
+KRAKEN_API_SECRET="your_api_secret"
+```
+
+---
+
+## Package Exports
+
+### REST
+- `KrakenSpotRestClient`
+
+Sub-APIs available on the client:
+- `marketData`
+- `accountData`
+- `trading`
+- `funding`
+- `subaccounts`
+- `earn`
+- `transparency`
+
+### WebSocket
+- `KrakenSpotWebsocketV2Client`
+- `KrakenWebsocketBase` (advanced / custom integrations)
+
+Typed channel namespaces:
+- `admin`
+- `marketData`
+- `userData`
+- `userTrading`
+
+All public request/response and stream payloads are exported as TypeScript types.
+
+---
+## REST Usage
+
+### Public REST example (no authentication)
 
 ```ts
+import { KrakenSpotRestClient } from '@lynx-crypto/kraken-api';
+
+async function main() {
+  const kraken = new KrakenSpotRestClient({
+    userAgent: 'example-app/1.0.0',
+  });
+
+  const time = await kraken.marketData.getServerTime();
+  console.log('Kraken time:', time.rfc1123);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});
+```
+
+### Private REST example (authenticated)
+
+```ts
+import 'dotenv/config';
+import { KrakenSpotRestClient } from '@lynx-crypto/kraken-api';
+
+function requireEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env var: ${name}`);
+  return v;
+}
+
+async function main() {
+  const kraken = new KrakenSpotRestClient({
+    userAgent: 'example-app/1.0.0',
+    apiKey: requireEnv('KRAKEN_API_KEY'),
+    apiSecret: requireEnv('KRAKEN_API_SECRET'),
+  });
+
+  const balances = await kraken.accountData.getAccountBalance();
+  console.log('Asset count:', Object.keys(balances).length);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});
+```
+
+---
+
+## WebSocket v2 Usage
+
+### Public WebSocket (market data)
+
+```ts
+import { KrakenSpotWebsocketV2Client } from '@lynx-crypto/kraken-api';
+
+async function main() {
+  const wsClient = new KrakenSpotWebsocketV2Client({
+    autoReconnect: false,
+  });
+
+  await wsClient.publicConnection.connect();
+
+  const ack = await wsClient.marketData.subscribeTrade(
+    { symbol: ['BTC/USD'], snapshot: true },
+    { reqId: 1 },
+  );
+
+  if (!ack.success) {
+    throw new Error(`Subscribe failed: ${ack.error}`);
+  }
+
+  const unsubscribe = wsClient.publicConnection.addMessageHandler((msg) => {
+    console.log(JSON.stringify(msg));
+  });
+
+  setTimeout(() => {
+    unsubscribe();
+    wsClient.publicConnection.close(1000, 'example done');
+  }, 20_000);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});
+```
+
+### Private WebSocket (balances / executions)
+
+Authenticated WebSocket usage requires a token obtained via REST.
+
+```ts
+import 'dotenv/config';
 import {
   KrakenSpotRestClient,
   KrakenSpotWebsocketV2Client,
 } from '@lynx-crypto/kraken-api';
-```
 
-CJS:
+function requireEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env var: ${name}`);
+  return v;
+}
 
-```js
-const {
-  KrakenSpotRestClient,
-  KrakenSpotWebsocketV2Client,
-} = require('@lynx-crypto/kraken-api');
-```
+async function main() {
+  const rest = new KrakenSpotRestClient({
+    userAgent: 'example-app/1.0.0',
+    apiKey: requireEnv('KRAKEN_API_KEY'),
+    apiSecret: requireEnv('KRAKEN_API_SECRET'),
+  });
 
----
+  const { token } = await rest.trading.getWebSocketsToken();
 
-## REST (Spot)
+  const wsClient = new KrakenSpotWebsocketV2Client({
+    authToken: token,
+    autoReconnect: false,
+  });
 
-### Create a REST client
+  await wsClient.privateConnection.connect();
 
-```ts
-const kraken = new KrakenSpotRestClient({
-  // Optional:
-  // baseUrl: "https://api.kraken.com",
-  // timeoutMs: 10_000,
-  // userAgent: "my-app/1.0.0",
+  const ack = await wsClient.userData.subscribeBalances({}, { reqId: 10 });
 
-  // Required for private endpoints:
-  apiKey: process.env.KRAKEN_API_KEY,
-  apiSecret: process.env.KRAKEN_API_SECRET,
+  if (!ack.success) {
+    throw new Error(`Subscribe failed: ${ack.error}`);
+  }
 
-  // Optional logger:
-  // logger: console,
+  const off = wsClient.privateConnection.addMessageHandler((msg) => {
+    console.log(JSON.stringify(msg));
+  });
 
-  // Optional rate limiting:
-  // rateLimit: { mode: "auto" },
+  setTimeout(() => {
+    off();
+    wsClient.privateConnection.close(1000, 'example done');
+  }, 30_000);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
 });
-```
-
-### Public endpoint example
-
-```ts
-const serverTime = await kraken.marketData.getServerTime();
-console.log(serverTime);
-```
-
-### Private endpoint example
-
-```ts
-const balances = await kraken.accountData.getAccountBalance();
-console.log('USD:', balances['ZUSD']);
 ```
 
 ---
@@ -194,161 +347,30 @@ Notes:
 
 ---
 
-## WebSocket v2 (Spot)
+## Examples
 
-This package provides a top-level v2 WS client that creates:
+The repository includes a comprehensive [examples](./examples) directory:
 
-- a public connection (market data + admin)
-- a private/auth connection (user-data + user-trading)
+- REST (public + safe private endpoints)
+- WebSocket v2 public streams
+- WebSocket v2 private streams (balances, executions)
+- Clean lifecycle examples (connect → subscribe → receive → close)
 
-### Create a WS v2 client
-
-```ts
-const ws = new KrakenSpotWebsocketV2Client({
-  // publicUrl: "wss://ws.kraken.com/v2",
-  // privateUrl: "wss://ws-auth.kraken.com/v2",
-
-  authToken: process.env.KRAKEN_WS_AUTH_TOKEN,
-
-  // autoReconnect: true,
-  // reconnectDelayMs: 1_000,
-  // requestTimeoutMs: 10_000,
-
-  // logger: console,
-  // WebSocketImpl: WebSocket,
-});
-```
-
-Available sub-APIs:
-
-- `ws.admin`
-- `ws.marketData`
-- `ws.userData`
-- `ws.userTrading`
-
-### Connect
-
-```ts
-import { WebSocket } from 'ws';
-import { KrakenWebsocketBase } from '@lynx-laboratory/kraken-api';
-
-// Public (no auth)
-const publicWs = new KrakenWebsocketBase({
-  url: 'wss://ws.kraken.com/v2',
-  WebSocketImpl: WebSocket,
-});
-
-// Private (auth)
-const privateWs = new KrakenWebsocketBase({
-  url: 'wss://ws-auth.kraken.com/v2',
-  authToken: process.env.KRAKEN_WS_TOKEN, // or however you fetch it
-  WebSocketImpl: WebSocket,
-});
-
-// Optional: explicit connect (idempotent)
-await publicWs.connect();
-await privateWs.connect();
-
-// ...then use request()/sendRaw()/addMessageHandler() as needed
-```
+Examples are designed to be:
+- Runnable
+- Safe by default
+- Self-contained
+- Easy to copy into your own project
 
 ---
 
-## WS routing: receiving streaming messages
+## Design Philosophy
 
-```ts
-const unsubscribe = ws..addMessageHandler((msg) => {
-  // route by msg.channel / msg.type
-});
-
-// later
-unsubscribe();
-```
-
----
-
-## WS v2: Admin
-
-```ts
-const pong = await ws.admin.ping({ reqId: 123 });
-if (!pong.success) console.error('ping failed:', pong.error);
-```
-
----
-
-## WS v2: User Data (authenticated)
-
-Implemented channels:
-
-- `executions`
-- `balances`
-
-### Executions example
-
-```ts
-const ack = await ws.userData.subscribeExecutions({
-  snap_trades: true,
-  snap_orders: true,
-  order_status: true,
-});
-```
-
-```ts
-ws.privateConnection.addMessageHandler((msg) => {
-  if (msg?.channel === 'executions') {
-    for (const report of msg.data ?? []) {
-      console.log(report.order_id, report.order_status);
-    }
-  }
-});
-```
-
-### Balances example
-
-```ts
-const ack2 = await ws.userData.subscribeBalances({ snapshot: true });
-```
-
-```ts
-ws.privateConnection.addMessageHandler((msg) => {
-  if (msg?.channel === 'balances') {
-    console.log(msg.data);
-  }
-});
-```
-
----
-
-## WS v2: User Trading (authenticated RPC)
-
-Implemented RPCs:
-
-- `add_order`
-- `amend_order`
-- `cancel_order`
-- `cancel_all`
-- `cancel_all_orders_after`
-- `batch_add`
-- `batch_cancel`
-
-Add order:
-
-```ts
-const res = await ws.userTrading.addOrder({
-  order_type: 'limit',
-  side: 'buy',
-  symbol: 'BTC/USD',
-  order_qty: 0.01,
-  limit_price: 30000,
-  time_in_force: 'gtc',
-});
-```
-
-Dead Man’s Switch:
-
-```ts
-await ws.userTrading.cancelAllOrdersAfter({ timeout: 60 });
-```
+- Explicit APIs over magic
+- Strong typing without sacrificing usability
+- Clear separation of REST vs WebSocket concerns
+- No hidden background workers
+- Safe defaults, especially for trading operations
 
 ---
 
