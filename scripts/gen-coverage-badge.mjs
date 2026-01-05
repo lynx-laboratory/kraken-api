@@ -30,12 +30,22 @@ if (!fs.existsSync(summaryPath)) {
 }
 
 const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
-const pctRaw = summary?.total?.lines?.pct;
+const total = summary?.total;
 
-if (typeof pctRaw !== 'number') {
-  console.error('Could not read total.lines.pct from coverage-summary.json');
+const metrics = ['lines', 'statements', 'functions', 'branches'];
+const metricPcts = metrics.map((k) => ({ k, pct: total?.[k]?.pct }));
+
+const missing = metricPcts
+  .filter((m) => typeof m.pct !== 'number')
+  .map((m) => m.k);
+if (missing.length > 0) {
+  console.error(
+    `Could not read coverage pct for: ${missing.join(', ')} from coverage-summary.json`,
+  );
   process.exit(1);
 }
+
+const pctRaw = Math.min(...metricPcts.map((m) => m.pct));
 
 const pct = clamp(pctRaw, 0, 100);
 const pctText = `${pct.toFixed(2)}%`;
@@ -86,4 +96,8 @@ fs.mkdirSync(outDir, { recursive: true });
 const outPath = path.join(outDir, 'coverage.svg');
 fs.writeFileSync(outPath, svg, 'utf8');
 
-console.log(`Wrote ${outPath} (${pctText})`);
+console.log(
+  `Wrote ${outPath} (${pctText}) using min of: ${metricPcts
+    .map((m) => `${m.k}=${m.pct.toFixed(2)}%`)
+    .join(', ')}`,
+);

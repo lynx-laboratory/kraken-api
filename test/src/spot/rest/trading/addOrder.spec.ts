@@ -166,4 +166,65 @@ describe('spot/rest/trading/addOrder', () => {
       cl_ord_id: 'CLIENT-ORDER-01',
     });
   });
+
+  it('serializes reduce_only=false and validate=true (boolean ternary branches)', async () => {
+    const privatePost = vi.fn().mockResolvedValueOnce({
+      descr: { order: 'sell 1 XBTUSD @ market' },
+      txid: ['OBOOL'],
+    });
+
+    const base = { privatePost } as unknown as KrakenRestBase;
+
+    await addOrder(base, {
+      ordertype: 'market',
+      type: 'sell',
+      volume: '1',
+      pair: 'XBTUSD',
+      reduce_only: false, // <- false branch
+      validate: true, // <- true branch
+    });
+
+    expect(privatePost).toHaveBeenCalledTimes(1);
+    expect(privatePost).toHaveBeenCalledWith('/0/private/AddOrder', {
+      ordertype: 'market',
+      type: 'sell',
+      volume: '1',
+      pair: 'XBTUSD',
+      reduce_only: 'false',
+      validate: 'true',
+    });
+  });
+
+  it('close: includes close[ordertype] but omits close[price]/close[price2] when undefined (false branches)', async () => {
+    const privatePost = vi.fn().mockResolvedValueOnce({
+      descr: { order: 'buy 1 XBTUSD @ limit 50000', close: '...' },
+      txid: ['OCLOSE'],
+    });
+
+    const base = { privatePost } as unknown as KrakenRestBase;
+
+    await addOrder(base, {
+      ordertype: 'limit',
+      type: 'buy',
+      volume: '1',
+      pair: 'XBTUSD',
+      price: '50000',
+      close: {
+        ordertype: 'stop-loss',
+        // price undefined
+        // price2 undefined
+      },
+    });
+
+    expect(privatePost).toHaveBeenCalledTimes(1);
+    expect(privatePost).toHaveBeenCalledWith('/0/private/AddOrder', {
+      ordertype: 'limit',
+      type: 'buy',
+      volume: '1',
+      pair: 'XBTUSD',
+      price: '50000',
+      'close[ordertype]': 'stop-loss',
+      // intentionally no close[price], close[price2]
+    });
+  });
 });

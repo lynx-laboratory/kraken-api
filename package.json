@@ -81,20 +81,37 @@
     "examples:spot:websocket-v2:market-data:book": "yarn example ./examples/spot/websocket-v2/market-data/04-book.ts",
     "examples:spot:websocket-v2:market-data:instruments": "yarn example ./examples/spot/websocket-v2/market-data/05-instruments.ts",
     "examples:spot:websocket-v2:user-data:balances": "yarn example ./examples/spot/websocket-v2/user-data/01-balances.ts",
-    "examples:spot:websocket-v2:user-data:executions": "yarn example ./examples/spot/websocket-v2/user-data/02-executions.ts"
+    "examples:spot:websocket-v2:user-data:executions": "yarn example ./examples/spot/websocket-v2/user-data/02-executions.ts",
+    "examples:bulk:ohlcvt:download": "yarn example ./examples/bulk/ohlcvt/01-download.ts",
+    "examples:bulk:ohlcvt:extract": "yarn example ./examples/bulk/ohlcvt/02-extract.ts",
+    "examples:bulk:ohlcvt:has": "yarn example ./examples/bulk/ohlcvt/03-has.ts",
+    "examples:bulk:ohlcvt:list-intervals": "yarn example ./examples/bulk/ohlcvt/04-list-intervals.ts",
+    "examples:bulk:ohlcvt:list-pairs": "yarn example ./examples/bulk/ohlcvt/05-list-pairs.ts",
+    "examples:bulk:ohlcvt:query": "yarn example ./examples/bulk/ohlcvt/06-query.ts",
+    "examples:bulk:trades:download": "yarn example ./examples/bulk/trades/01-download.ts",
+    "examples:bulk:trades:extract": "yarn example ./examples/bulk/trades/02-extract.ts",
+    "examples:bulk:trades:has": "yarn example ./examples/bulk/trades/03-has.ts",
+    "examples:bulk:trades:list-pairs": "yarn example ./examples/bulk/trades/04-list-pairs.ts",
+    "examples:bulk:trades:query": "yarn example ./examples/bulk/trades/05-query.ts"
   },
   "dependencies": {
-    "ws": "^8.18.3"
+    "csv-parse": "^6.1.0",
+    "googleapis": "^169.0.0",
+    "ws": "^8.18.3",
+    "yauzl": "^3.2.0"
   },
   "devDependencies": {
-    "@types/node": "^25.0.1",
+    "@types/node": "^25.0.3",
     "@types/ws": "^8.18.1",
+    "@types/yauzl": "^2.10.3",
+    "@types/yazl": "^3",
     "@vitest/coverage-v8": "4.0.15",
     "dotenv": "^17.2.3",
     "prettier": "^3.7.4",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.15"
+    "vitest": "^4.0.15",
+    "yazl": "^3.3.1"
   }
 }

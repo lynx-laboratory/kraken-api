@@ -309,4 +309,93 @@ describe('RedisTokenBucketLimiter', () => {
     expect(call[4]).toBe(17);
     expect(call[5]).toBe(55);
   });
+
+  it('constructor defaults ttlSeconds=30 and minWaitMs=50 when not provided (?? branches)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+
+    const evalFn: RedisEvalFn = vi.fn(async () => 0);
+
+    // NOTE: no ttlSeconds / minWaitMs provided
+    const limiter = new RedisTokenBucketLimiter({
+      key: 'k',
+      maxCounter: 10,
+      decayPerSec: 1,
+      evalRedis: evalFn,
+    });
+
+    await expect(limiter.schedule(async () => 'ok')).resolves.toBe('ok');
+
+    expect(evalFn).toHaveBeenCalledTimes(1);
+    const call = (evalFn as any).mock.calls[0] as any[];
+
+    // args: key, maxCounter, decayPerSec, cost, ttlSeconds, minWaitMs
+    expect(call[4]).toBe(30);
+    expect(call[5]).toBe(50);
+  });
+
+  it('schedule() normalizes cost via Math.max(0, meta?.cost ?? 1) (default + negative branches)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(20_000);
+
+    const evalFn: RedisEvalFn = vi.fn(async () => 0);
+
+    const limiter = new RedisTokenBucketLimiter({
+      key: 'k',
+      maxCounter: 10,
+      decayPerSec: 1,
+      evalRedis: evalFn,
+    });
+
+    const p1 = limiter.schedule(async () => 'a'); // meta undefined => cost=1
+    const p2 = limiter.schedule(async () => 'b', { cost: -5 }); // negative => cost=0
+
+    await expect(Promise.all([p1, p2])).resolves.toEqual(['a', 'b']);
+
+    expect(evalFn).toHaveBeenCalledTimes(2);
+    expect((evalFn as any).mock.calls[0][3]).toBe(1);
+    expect((evalFn as any).mock.calls[1][3]).toBe(0);
+  });
+
+  it('drain() does not start a second drain while already draining (if (this.draining) return branch)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(30_000);
+
+    // First acquireOnce says "wait", keeping drain in-flight.
+    // If schedule() wrongly starts a second drain, we'd see extra evalRedis calls immediately.
+    const evalRedis: RedisEvalFn = vi
+      .fn()
+      .mockResolvedValueOnce(100) // wait first
+      .mockResolvedValueOnce(0) // then allow first
+      .mockResolvedValue(0); // allow second
+
+    const limiter = new RedisTokenBucketLimiter({
+      key: 'k',
+      maxCounter: 1,
+      decayPerSec: 1,
+      ttlSeconds: 30,
+      minWaitMs: 50,
+      evalRedis,
+    });
+
+    const fn1 = vi.fn(async () => 'a');
+    const fn2 = vi.fn(async () => 'b');
+
+    const p1 = limiter.schedule(fn1, { cost: 1 });
+    const p2 = limiter.schedule(fn2, { cost: 1 });
+
+    // drain() starts synchronously until its first await; evalRedis should be called once
+    expect(evalRedis).toHaveBeenCalledTimes(1);
+    expect(fn2).toHaveBeenCalledTimes(0);
+
+    // Let the sleep(100) elapse, then processing continues.
+    await vi.advanceTimersByTimeAsync(100);
+    await vi.runOnlyPendingTimersAsync();
+
+    await expect(p1).resolves.toBe('a');
+    await expect(p2).resolves.toBe('b');
+
+    // Total: wait + proceed for fn1 + proceed for fn2
+    expect(evalRedis).toHaveBeenCalledTimes(3);
+  });
 });

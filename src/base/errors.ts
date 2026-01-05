@@ -34,3 +34,15 @@ export class KrakenApiError extends Error {
     this.rawBody = details.rawBody;
   }
 }
+
+export class KrakenBulkError extends Error {
+  readonly code: string;
+  readonly meta?: Record<string, unknown>;
+
+  constructor(code: string, message: string, meta?: Record<string, unknown>) {
+    super(message);
+    this.name = 'KrakenBulkError';
+    this.code = code;
+    this.meta = meta;
+  }
+}

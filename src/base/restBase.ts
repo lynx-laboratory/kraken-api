@@ -78,7 +78,6 @@ export abstract class KrakenRestBase {
       }
 
       // Trading limiter: Kraken docs say it's separate; we keep it conservative.
-      // You can tune these values later once you align with Kraken trading rate limit docs.
       if (!this.tradingLimiter) {
         this.tradingLimiter = new TokenBucketLimiter(10, 1.0);
       }

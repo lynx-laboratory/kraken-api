@@ -170,7 +170,7 @@ export class KrakenWebsocketBase {
             this.reconnectAttempts++;
 
             // exponential backoff with caps + jitter
-            const base = this.reconnectDelayMs; // your configured base (default 1000)
+            const base = this.reconnectDelayMs; // (default 1000)
             const exp = Math.min(
               30_000,
               base * Math.pow(2, this.reconnectAttempts - 1),

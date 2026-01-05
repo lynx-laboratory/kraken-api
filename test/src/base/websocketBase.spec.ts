@@ -505,4 +505,328 @@ describe('KrakenWebsocketBase', () => {
 
     await expect(p).rejects.toThrow(/WebSocket is not open/i);
   });
+
+  it('constructor throws when no WebSocketImpl is available (covers !this.WebSocketImpl)', async () => {
+    vi.resetModules();
+    vi.doMock('ws', () => ({ WebSocket: undefined }));
+
+    const mod = await import('../../../src/base/websocketBase');
+    const { KrakenWebsocketBase } = mod;
+
+    expect(
+      () =>
+        new KrakenWebsocketBase({
+          url: 'wss://example.test/v2',
+          // do not pass WebSocketImpl
+        } as any),
+    ).toThrow(/No WebSocket implementation available/i);
+
+    vi.resetModules();
+    vi.unmock('ws');
+  });
+
+  it('connect() rejects if WebSocketImpl constructor throws (covers connect try/catch -> reject)', async () => {
+    class ThrowCtor {
+      constructor(_url: string) {
+        throw new Error('ctor boom');
+      }
+    }
+
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: ThrowCtor as any,
+      autoReconnect: false,
+    });
+
+    await expect(ws.connect()).rejects.toThrow(/ctor boom/);
+
+    // also proves connectingPromise was cleared (2nd call creates a fresh attempt)
+    await expect(ws.connect()).rejects.toThrow(/ctor boom/);
+  });
+
+  it('request() triggers connect() when not already open (covers "if !ws || readyState !== 1")', async () => {
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: FakeWebSocket as any,
+      autoReconnect: false,
+    });
+
+    const p = ws.request('ping', undefined, {
+      reqId: 321,
+      timeoutMs: 1000,
+      attachAuthToken: false,
+    });
+
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    const sock = FakeWebSocket.instances[0]!;
+    sock.serverOpen();
+
+    // let request continue after connect resolves
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(sock.sent).toHaveLength(1);
+
+    sock.serverMessage(
+      JSON.stringify({ req_id: 321, success: true, result: { ok: true } }),
+    );
+
+    await expect(p).resolves.toMatchObject({ req_id: 321, success: true });
+  });
+
+  it('request() rejects and cleans up if ws.send throws (covers request send try/catch)', async () => {
+    class ThrowSendWs extends FakeWebSocket {
+      send(_data: string): void {
+        throw new Error('send boom');
+      }
+    }
+
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: ThrowSendWs as any,
+      autoReconnect: false,
+    });
+
+    const cp = ws.connect();
+    FakeWebSocket.instances[0]!.serverOpen();
+    await cp;
+
+    const p = ws.request('ping', undefined, {
+      reqId: 777,
+      timeoutMs: 1000,
+      attachAuthToken: false,
+    });
+
+    await expect(p).rejects.toThrow(/send boom/);
+
+    // sanity: no pending request left behind
+    expect(((ws as any).pending as Map<number, unknown>).size).toBe(0);
+  });
+
+  it('autoReconnect logs "reconnect failed" when reconnect connect() rejects (covers void connect().catch logger.error)', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0); // stabilize jitter
+
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    };
+
+    class FlakyCtorWs extends FakeWebSocket {
+      static created = 0;
+      constructor(url: string) {
+        if (FlakyCtorWs.created >= 1) {
+          throw new Error('reconnect ctor boom');
+        }
+        FlakyCtorWs.created++;
+        super(url);
+      }
+    }
+    FlakyCtorWs.created = 0;
+
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: FlakyCtorWs as any,
+      autoReconnect: true,
+      reconnectDelayMs: 10,
+      logger,
+    });
+
+    const p = ws.connect();
+    const sock1 = FakeWebSocket.instances[0]!;
+    sock1.serverOpen();
+    await p;
+
+    // trigger unexpected close -> schedules reconnect
+    sock1.serverClose({ code: 1006 });
+
+    // allow reconnect timer to run and attempt connect (which will reject)
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'Kraken WS reconnect failed',
+      expect.objectContaining({
+        url: 'wss://example.test/v2',
+        error: expect.any(Error),
+      }),
+    );
+  });
+
+  it('uses default WebSocket from ws when WebSocketImpl is not provided (typeof WebSocket !== "undefined" true branch)', async () => {
+    vi.resetModules();
+    vi.doMock('ws', () => ({ WebSocket: FakeWebSocket }));
+
+    const mod = await import('../../../src/base/websocketBase');
+    const { KrakenWebsocketBase } = mod;
+
+    FakeWebSocket.instances = [];
+
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      autoReconnect: false,
+      // no WebSocketImpl
+    } as any);
+
+    const p = ws.connect();
+    expect(FakeWebSocket.instances).toHaveLength(1);
+
+    FakeWebSocket.instances[0]!.serverOpen();
+    await p;
+
+    vi.resetModules();
+    vi.unmock('ws');
+  });
+
+  it('readyState is -1 before socket is created (nullish coalescing branch)', () => {
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: FakeWebSocket as any,
+      autoReconnect: false,
+    });
+
+    expect(ws.readyState).toBe(-1);
+  });
+
+  it('readyState reflects underlying socket state once created', async () => {
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: FakeWebSocket as any,
+      autoReconnect: false,
+    });
+
+    const p = ws.connect();
+    // created but not opened yet (FakeWebSocket defaults CONNECTING)
+    expect(ws.readyState).toBe(0);
+
+    FakeWebSocket.instances[0]!.serverOpen();
+    await p;
+    expect(ws.readyState).toBe(1);
+  });
+
+  it('autoReconnect backoff uses minAfterMany once reconnectAttempts >= 4 (branch coverage)', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0); // jitter factor => 0.8
+
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: FakeWebSocket as any,
+      autoReconnect: true,
+      reconnectDelayMs: 10, // base
+      logger: { info: vi.fn(), error: vi.fn() },
+    });
+
+    const p = ws.connect();
+    const sock = FakeWebSocket.instances[0]!;
+    sock.serverOpen();
+    await p;
+
+    // Call onclose repeatedly on same socket to increment attempts and schedule timers
+    sock.serverClose({ code: 1006 }); // attempt 1 => exp=10 => delay=10 => jittered=floor(10*0.8)=8
+    sock.serverClose({ code: 1006 }); // attempt 2 => exp=20 => jittered=16
+    sock.serverClose({ code: 1006 }); // attempt 3 => exp=40 => jittered=32
+    sock.serverClose({ code: 1006 }); // attempt 4 => minAfterMany=5000 dominates => jittered=floor(5000*0.8)=4000
+
+    const delays = setTimeoutSpy.mock.calls.map((c) => c[1]) as number[];
+    expect(delays.slice(-4)).toEqual([8, 16, 32, 4000]);
+
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    (Math.random as any).mockRestore?.();
+  });
+
+  it('onmessage: non-string data is passed through; req_id with no pending still fans out to handlers (branches)', async () => {
+    const logger = {
+      error: vi.fn(),
+      warn: vi.fn(),
+      info: vi.fn(),
+      debug: vi.fn(),
+    };
+
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: FakeWebSocket as any,
+      autoReconnect: false,
+      logger,
+    });
+
+    const p = ws.connect();
+    const sock = FakeWebSocket.instances[0]!;
+    sock.serverOpen();
+    await p;
+
+    const handler = vi.fn();
+    ws.addMessageHandler(handler);
+
+    // non-string payload + req_id but no pending request registered
+    sock.serverMessage({ req_id: 999, hello: 'world' } as any);
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith({ req_id: 999, hello: 'world' });
+  });
+
+  it('close() does nothing if no socket exists (close branch false)', () => {
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: FakeWebSocket as any,
+      autoReconnect: true,
+    });
+
+    expect(() => ws.close(1000, 'bye')).not.toThrow();
+    expect(FakeWebSocket.instances).toHaveLength(0);
+  });
+
+  it('sendRaw() sends strings without JSON.stringify (typeof message === "string" branch)', async () => {
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: FakeWebSocket as any,
+      autoReconnect: false,
+    });
+
+    const cp = ws.connect();
+    const sock = FakeWebSocket.instances[0]!;
+    sock.serverOpen();
+    await cp;
+
+    await ws.sendRaw('hello');
+
+    expect(sock.sent).toHaveLength(1);
+    expect(sock.sent[0]).toBe('hello');
+  });
+
+  it('request() uses default reqId, default timeoutMs, and default attachAuthToken=true when options are omitted', async () => {
+    const ws = new KrakenWebsocketBase({
+      url: 'wss://example.test/v2',
+      WebSocketImpl: FakeWebSocket as any,
+      authToken: 'tok_default',
+      autoReconnect: false,
+      requestTimeoutMs: 123, // exercised via ?? path
+    });
+
+    const cp = ws.connect();
+    const sock = FakeWebSocket.instances[0]!;
+    sock.serverOpen();
+    await cp;
+
+    const req = ws.request('subscribe', { channel: 'balances' } as any); // no options
+
+    expect(sock.sent).toHaveLength(1);
+    const sent = JSON.parse(sock.sent[0]!);
+
+    // default reqId starts at 1
+    expect(sent.req_id).toBe(1);
+
+    // default attachAuthToken = true => token injected
+    expect(sent.params).toMatchObject({
+      channel: 'balances',
+      token: 'tok_default',
+    });
+
+    sock.serverMessage(
+      JSON.stringify({ req_id: 1, success: true, result: {} }),
+    );
+    await req;
+  });
 });

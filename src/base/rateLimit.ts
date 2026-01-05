@@ -126,7 +126,6 @@ export function tierToRestParams(tier: KrakenRateLimitTier): {
   maxCounter: number;
   decayPerSec: number;
 } {
-  // From your snippet:
   // Starter: 15, -0.33/sec
   // Intermediate: 20, -0.5/sec
   // Pro: 20, -1/sec
@@ -147,7 +146,7 @@ export function defaultRestCostFn(path: string): number {
   if (
     path.includes('TradesHistory') ||
     path.includes('Ledgers') ||
-    path.includes('TradeBalance') // optional; you can tweak
+    path.includes('TradeBalance') // optional;
   ) {
     return 2;
   }
@@ -155,7 +154,7 @@ export function defaultRestCostFn(path: string): number {
 }
 
 export function isTradingEndpoint(path: string): boolean {
-  // Trading engine limiter applies to add/cancel/amend etc. (as per your snippet)
+  // Trading engine limiter applies to add/cancel/amend etc.
   return (
     path.includes('/AddOrder') ||
     path.includes('/CancelOrder') ||

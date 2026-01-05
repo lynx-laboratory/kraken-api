@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 // adjust path as needed
-import { KrakenApiError } from '../../../src/base/errors';
+import { KrakenApiError, KrakenBulkError } from '../../../src/base/errors';
 
 describe('KrakenApiError', () => {
   it('sets name, message, and details fields', () => {
@@ -33,7 +33,47 @@ describe('KrakenApiError', () => {
     expect(err.message).toBe('no details');
     expect(err.endpoint).toBeUndefined();
     expect(err.httpStatus).toBeUndefined();
+    expect(err.httpStatusText).toBeUndefined();
     expect(err.krakenErrorCodes).toBeUndefined();
     expect(err.rawBody).toBeUndefined();
+  });
+
+  it('sets prototype correctly (Object.setPrototypeOf branch)', () => {
+    const err = new KrakenApiError('proto');
+    // this is the real reason for Object.setPrototypeOf(...) in TS/ES5
+    expect(err).toBeInstanceOf(KrakenApiError);
+  });
+});
+
+describe('KrakenBulkError', () => {
+  it('sets name, code, message, and meta', () => {
+    const meta = { dataset: 'ohlcvt', quarter: '2024Q3', wanted: 'x.zip' };
+
+    const err = new KrakenBulkError(
+      'BULK_DRIVE_QUARTER_NOT_FOUND',
+      'no zip',
+      meta,
+    );
+
+    expect(err).toBeInstanceOf(Error);
+    expect(err).toBeInstanceOf(KrakenBulkError);
+
+    expect(err.name).toBe('KrakenBulkError');
+    expect(err.message).toBe('no zip');
+
+    expect(err.code).toBe('BULK_DRIVE_QUARTER_NOT_FOUND');
+    expect(err.meta).toEqual(meta);
+  });
+
+  it('works with no meta', () => {
+    const err = new KrakenBulkError(
+      'BULK_DRIVE_DOWNLOAD_FAILED',
+      'download failed',
+    );
+
+    expect(err.name).toBe('KrakenBulkError');
+    expect(err.message).toBe('download failed');
+    expect(err.code).toBe('BULK_DRIVE_DOWNLOAD_FAILED');
+    expect(err.meta).toBeUndefined();
   });
 });

@@ -1,6 +1,9 @@
 # dependencies
 node_modules
 
+#example output
+.bulk-data/
+
 # build output
 dist/
 coverage/

@@ -29,3 +29,5 @@ export type * from './spot/websocket-v2/admin';
 export type * from './spot/websocket-v2/market-data';
 export type * from './spot/websocket-v2/user-data';
 export type * from './spot/websocket-v2/user-trading';
+
+export * from './bulk/bulkClient';
