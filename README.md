@@ -69,15 +69,15 @@ Bulk workflow:
 
 Using Yarn:
 
-'''sh
+```sh
 yarn add @lynx-crypto/kraken-api
-'''
+```
 
 Using npm:
 
-'''sh
+```sh
 npm install @lynx-crypto/kraken-api
-'''
+```
 
 ---
 
@@ -96,21 +96,21 @@ npm install @lynx-crypto/kraken-api
 
 ## Environment Variables (for private usage)
 
-'''bash
+```bash
 KRAKEN_API_KEY="your_api_key"
 KRAKEN_API_SECRET="your_api_secret"
-'''
+```
 
 ## Environment Variables (optional, for bulk downloads)
 
-'''bash
+```bash
 
 # If set, bulk downloads can be performed via the Google Drive API.
 
 # If not set, ZIPs can be downloaded manually and placed into the expected folders.
 
 LYNX_CRYPTO_KRAKEN_API_GOOGLE_DRIVE_API_KEY="your_google_drive_api_key"
-'''
+```
 
 ---
 
@@ -154,52 +154,52 @@ All public request/response and stream payloads are exported as TypeScript types
 
 ### Public REST example (no authentication)
 
-'''ts
+```ts
 import { KrakenSpotRestClient } from '@lynx-crypto/kraken-api';
 
 async function main() {
-const kraken = new KrakenSpotRestClient({
-userAgent: 'example-app/1.0.0',
-});
+  const kraken = new KrakenSpotRestClient({
+    userAgent: 'example-app/1.0.0',
+  });
 
-const time = await kraken.marketData.getServerTime();
-console.log('Kraken time:', time.rfc1123);
+  const time = await kraken.marketData.getServerTime();
+  console.log('Kraken time:', time.rfc1123);
 }
 
 main().catch((err) => {
-console.error(err);
-process.exitCode = 1;
+  console.error(err);
+  process.exitCode = 1;
 });
-'''
+```
 
 ### Private REST example (authenticated)
 
-'''ts
+```ts
 import 'dotenv/config';
 import { KrakenSpotRestClient } from '@lynx-crypto/kraken-api';
 
 function requireEnv(name: string): string {
-const v = process.env[name];
-if (!v) throw new Error(`Missing env var: ${name}`);
-return v;
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env var: ${name}`);
+  return v;
 }
 
 async function main() {
-const kraken = new KrakenSpotRestClient({
-userAgent: 'example-app/1.0.0',
-apiKey: requireEnv('KRAKEN_API_KEY'),
-apiSecret: requireEnv('KRAKEN_API_SECRET'),
-});
+  const kraken = new KrakenSpotRestClient({
+    userAgent: 'example-app/1.0.0',
+    apiKey: requireEnv('KRAKEN_API_KEY'),
+    apiSecret: requireEnv('KRAKEN_API_SECRET'),
+  });
 
-const balances = await kraken.accountData.getAccountBalance();
-console.log('Asset count:', Object.keys(balances).length);
+  const balances = await kraken.accountData.getAccountBalance();
+  console.log('Asset count:', Object.keys(balances).length);
 }
 
 main().catch((err) => {
-console.error(err);
-process.exitCode = 1;
+  console.error(err);
+  process.exitCode = 1;
 });
-'''
+```
 
 ---
 
@@ -207,95 +207,95 @@ process.exitCode = 1;
 
 ### Public WebSocket (market data)
 
-'''ts
+```ts
 import { KrakenSpotWebsocketV2Client } from '@lynx-crypto/kraken-api';
 
 async function main() {
-const wsClient = new KrakenSpotWebsocketV2Client({
-autoReconnect: false,
-});
+  const wsClient = new KrakenSpotWebsocketV2Client({
+    autoReconnect: false,
+  });
 
-await wsClient.publicConnection.connect();
+  await wsClient.publicConnection.connect();
 
-const ack = await wsClient.marketData.subscribeTrade(
-{ symbol: ['BTC/USD'], snapshot: true },
-{ reqId: 1 },
-);
+  const ack = await wsClient.marketData.subscribeTrade(
+    { symbol: ['BTC/USD'], snapshot: true },
+    { reqId: 1 },
+  );
 
-if (!ack.success) {
-throw new Error(`Subscribe failed: ${ack.error}`);
-}
+  if (!ack.success) {
+    throw new Error(`Subscribe failed: ${ack.error}`);
+  }
 
-const unsubscribe = wsClient.publicConnection.addMessageHandler((msg) => {
-console.log(JSON.stringify(msg));
-});
+  const unsubscribe = wsClient.publicConnection.addMessageHandler((msg) => {
+    console.log(JSON.stringify(msg));
+  });
 
-setTimeout(() => {
-unsubscribe();
-wsClient.publicConnection.close(1000, 'example done');
-}, 20_000);
+  setTimeout(() => {
+    unsubscribe();
+    wsClient.publicConnection.close(1000, 'example done');
+  }, 20_000);
 }
 
 main().catch((err) => {
-console.error(err);
-process.exitCode = 1;
+  console.error(err);
+  process.exitCode = 1;
 });
-'''
+```
 
 ### Private WebSocket (balances / executions)
 
 Authenticated WebSocket usage requires a token obtained via REST.
 
-'''ts
+```ts
 import 'dotenv/config';
 import {
-KrakenSpotRestClient,
-KrakenSpotWebsocketV2Client,
+  KrakenSpotRestClient,
+  KrakenSpotWebsocketV2Client,
 } from '@lynx-crypto/kraken-api';
 
 function requireEnv(name: string): string {
-const v = process.env[name];
-if (!v) throw new Error(`Missing env var: ${name}`);
-return v;
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env var: ${name}`);
+  return v;
 }
 
 async function main() {
-const rest = new KrakenSpotRestClient({
-userAgent: 'example-app/1.0.0',
-apiKey: requireEnv('KRAKEN_API_KEY'),
-apiSecret: requireEnv('KRAKEN_API_SECRET'),
-});
+  const rest = new KrakenSpotRestClient({
+    userAgent: 'example-app/1.0.0',
+    apiKey: requireEnv('KRAKEN_API_KEY'),
+    apiSecret: requireEnv('KRAKEN_API_SECRET'),
+  });
 
-const { token } = await rest.trading.getWebSocketsToken();
+  const { token } = await rest.trading.getWebSocketsToken();
 
-const wsClient = new KrakenSpotWebsocketV2Client({
-authToken: token,
-autoReconnect: false,
-});
+  const wsClient = new KrakenSpotWebsocketV2Client({
+    authToken: token,
+    autoReconnect: false,
+  });
 
-await wsClient.privateConnection.connect();
+  await wsClient.privateConnection.connect();
 
-const ack = await wsClient.userData.subscribeBalances({}, { reqId: 10 });
+  const ack = await wsClient.userData.subscribeBalances({}, { reqId: 10 });
 
-if (!ack.success) {
-throw new Error(`Subscribe failed: ${ack.error}`);
-}
+  if (!ack.success) {
+    throw new Error(`Subscribe failed: ${ack.error}`);
+  }
 
-const off = wsClient.privateConnection.addMessageHandler((msg) => {
-console.log(JSON.stringify(msg));
-});
+  const off = wsClient.privateConnection.addMessageHandler((msg) => {
+    console.log(JSON.stringify(msg));
+  });
 
-setTimeout(() => {
-off();
-wsClient.privateConnection.close(1000, 'example done');
-}, 30_000);
+  setTimeout(() => {
+    off();
+    wsClient.privateConnection.close(1000, 'example done');
+  }, 30_000);
 }
 
 main().catch((err) => {
-console.error(err);
-process.exitCode = 1;
+  console.error(err);
+  process.exitCode = 1;
 });
-'''
+```
 
 ---
 
@@ -312,7 +312,7 @@ Bulk data is managed by `KrakenBulkClient`. It supports:
 
 A `storageDir` is provided when constructing the client (examples use `.bulk-data`). The library stores ZIPs and extracted CSVs under dataset-specific folders:
 
-'''txt
+```txt
 <storageDir>/
 ohlcvt/
 zips/
@@ -328,7 +328,7 @@ quarterly/<YYYYQn>.zip
 extracted/
 complete/
 quarterly/<YYYYQn>/
-'''
+```
 
 Recommended:
 
@@ -362,27 +362,27 @@ This library supports Kraken-style rate limiting with optional automatic retries
 
 Example:
 
-'''ts
+```ts
 const kraken = new KrakenSpotRestClient({
-apiKey: process.env.KRAKEN_API_KEY,
-apiSecret: process.env.KRAKEN_API_SECRET,
-rateLimit: {
-mode: 'auto',
-tier: 'starter',
-retryOnRateLimit: true,
-maxRetries: 5,
-// restCostFn: (path) => (path.includes("Ledgers") ? 2 : 1),
-},
+  apiKey: process.env.KRAKEN_API_KEY,
+  apiSecret: process.env.KRAKEN_API_SECRET,
+  rateLimit: {
+    mode: 'auto',
+    tier: 'starter',
+    retryOnRateLimit: true,
+    maxRetries: 5,
+    // restCostFn: (path) => (path.includes("Ledgers") ? 2 : 1),
+  },
 });
-'''
+```
 
 Disable built-in throttling:
 
-'''ts
+```ts
 rateLimit: {
 mode: 'off',
 }
-'''
+```
 
 ### Redis rate limiting (multi-process / multi-container)
 
@@ -392,7 +392,7 @@ For cross-process coordination, you can use the Redis-backed token bucket limite
 
 Example (you provide the Redis client + EVAL wrapper):
 
-'''ts
+```ts
 import { KrakenSpotRestClient } from '@lynx-crypto/kraken-api';
 import { RedisTokenBucketLimiter } from '@lynx-crypto/kraken-api/base/redisRateLimit';
 
@@ -400,26 +400,26 @@ import { RedisTokenBucketLimiter } from '@lynx-crypto/kraken-api/base/redisRateL
 // - 0 means "proceed now"
 // - >0 means "wait this many ms then retry"
 const evalRedis = async (
-key: string,
-maxCounter: number,
-decayPerSec: number,
-cost: number,
-ttlSeconds: number,
-minWaitMs: number,
+  key: string,
+  maxCounter: number,
+  decayPerSec: number,
+  cost: number,
+  ttlSeconds: number,
+  minWaitMs: number,
 ): Promise<number> => {
-// Example shape (pseudo-code):
-// return await redis.eval(luaScript, { keys: [key], arguments: [maxCounter, decayPerSec, cost, ttlSeconds, minWaitMs] });
-return 0;
+  // Example shape (pseudo-code):
+  // return await redis.eval(luaScript, { keys: [key], arguments: [maxCounter, decayPerSec, cost, ttlSeconds, minWaitMs] });
+  return 0;
 };
 
 const kraken = new KrakenSpotRestClient({
-apiKey: process.env.KRAKEN_API_KEY,
-apiSecret: process.env.KRAKEN_API_SECRET,
-rateLimit: {
-mode: 'auto',
-tier: 'starter',
-retryOnRateLimit: true,
-maxRetries: 5,
+  apiKey: process.env.KRAKEN_API_KEY,
+  apiSecret: process.env.KRAKEN_API_SECRET,
+  rateLimit: {
+    mode: 'auto',
+    tier: 'starter',
+    retryOnRateLimit: true,
+    maxRetries: 5,
 
     // Cross-process limiter (Redis):
     redis: {
@@ -432,10 +432,9 @@ maxRetries: 5,
         evalRedis,
       }),
     },
-
-},
+  },
 });
-'''
+```
 
 Notes:
 
