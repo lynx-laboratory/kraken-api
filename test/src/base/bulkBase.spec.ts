@@ -37,7 +37,7 @@ async function exists(p: string): Promise<boolean> {
 }
 
 describe('base/bulkBase.ts - KrakenBulkBase', () => {
-  const ENV = 'LYNX_CRYPTO_KRAKEN_API_GOOGLE_DRIVE_API_KEY';
+  const ENV = 'KRAKEN_API_GOOGLE_DRIVE_API_KEY';
   let prevEnv: string | undefined;
 
   const tmpDirs: string[] = [];
@@ -87,7 +87,7 @@ describe('base/bulkBase.ts - KrakenBulkBase', () => {
     // no key -> false
     const baseNoKey = new KrakenBulkBase({ storageDir: dir });
     expect(baseNoKey.driveApiKeyEnvVar()).toBe(
-      'LYNX_CRYPTO_KRAKEN_API_GOOGLE_DRIVE_API_KEY',
+      'KRAKEN_API_GOOGLE_DRIVE_API_KEY',
     );
     expect(baseNoKey.hasGoogleDriveApiKey()).toBe(false);
 

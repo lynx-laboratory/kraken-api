@@ -109,7 +109,7 @@ KRAKEN_API_SECRET="your_api_secret"
 
 # If not set, ZIPs can be downloaded manually and placed into the expected folders.
 
-LYNX_CRYPTO_KRAKEN_API_GOOGLE_DRIVE_API_KEY="your_google_drive_api_key"
+KRAKEN_API_GOOGLE_DRIVE_API_KEY="your_google_drive_api_key"
 ```
 
 ---
@@ -338,7 +338,7 @@ Recommended:
 
 1. Seamless downloads (Drive API)
 
-- Set `LYNX_CRYPTO_KRAKEN_API_GOOGLE_DRIVE_API_KEY`.
+- Set `KRAKEN_API_GOOGLE_DRIVE_API_KEY`.
 - Run the bulk download examples (see below).
 
 2. Manual ZIP placement (no API key)

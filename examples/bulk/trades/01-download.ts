@@ -21,7 +21,7 @@
  *   FORCE_REFRESH=1
  *     If set, re-download even if the ZIP already exists
  *
- *   LYNX_CRYPTO_KRAKEN_API_GOOGLE_DRIVE_API_KEY=...
+ *   KRAKEN_API_GOOGLE_DRIVE_API_KEY=...
  *     Required for seamless downloads (Drive API).
  *     If missing:
  *       - if ZIP exists locally: returns downloaded:false

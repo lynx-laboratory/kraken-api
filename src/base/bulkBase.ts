@@ -24,7 +24,7 @@ import { extractZipFile } from '../utils/zip';
 import { KrakenBulkError } from './errors';
 
 // Keep this aligned with your docblocks
-const ENV_GOOGLE_DRIVE_API_KEY = 'LYNX_CRYPTO_KRAKEN_API_GOOGLE_DRIVE_API_KEY';
+const ENV_GOOGLE_DRIVE_API_KEY = 'KRAKEN_API_GOOGLE_DRIVE_API_KEY';
 
 type ZipBucket = 'complete' | 'quarterly';
 type ExtractBucket = 'complete' | 'quarterly';

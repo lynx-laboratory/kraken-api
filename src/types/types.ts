@@ -155,7 +155,7 @@ export interface KrakenBulkDownloadOptions {
 
   /**
    * If true, re-download even if the ZIP already exists locally.
-   * Requires googleDriveApiKey (or env LYNX_CRYPTO_KRAKEN_API_GOOGLE_DRIVE_API_KEY).
+   * Requires googleDriveApiKey (or env KRAKEN_API_GOOGLE_DRIVE_API_KEY).
    */
   forceRefresh?: boolean;
 }
