@@ -24,7 +24,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
 
       - name: Enable Corepack (Yarn 4)
         run: |
@@ -34,6 +33,17 @@ jobs:
 
       - name: Use latest npm
         run: npm i -g npm@latest
+
+      - name: Guard - ensure no npm token env is set
+        run: |
+          if [ -n "${NODE_AUTH_TOKEN:-}" ] || [ -n "${NPM_TOKEN:-}" ]; then
+            echo "Token env var detected (NODE_AUTH_TOKEN/NPM_TOKEN). Remove it for OIDC trusted publishing."
+            exit 1
+          fi
+
+      - name: Clear npm config files (avoid token/always-auth config)
+        run: |
+          rm -f ~/.npmrc .npmrc
 
       - name: Verify tag matches package.json version
         run: |
@@ -50,5 +60,5 @@ jobs:
       - name: Safety check - show publish contents
         run: npm pack --dry-run
 
-      - name: Publish (Trusted Publishing will attach provenance automatically)
+      - name: Publish (Trusted Publishing attaches provenance automatically)
         run: npm publish --access public --ignore-scripts
