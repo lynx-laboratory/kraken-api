@@ -18,9 +18,9 @@ import { KrakenBulkBase } from '../base/bulkBase';
 import { KrakenBulkError } from '../base/errors';
 
 // --- Google Drive constants ---
-const TRADES_COMPLETE_FILE_ID = '1nB0_Bv6oFQfqYxhhYkPSWXMWQRxmhRUZ';
+const TRADES_COMPLETE_FILE_ID = '10zh3tDpqANYvVtYVgczwVz3UZFRUb1el';
 const TRADES_COMPLETE_URL =
-  'https://drive.google.com/file/d/1nB0_Bv6oFQfqYxhhYkPSWXMWQRxmhRUZ/view?usp=sharing';
+  'https://drive.google.com/file/d/10zh3tDpqANYvVtYVgczwVz3UZFRUb1el/view?usp=sharing';
 
 const TRADES_QUARTERLY_FOLDER_ID = '188O9xQjZTythjyLNes_5zfMEFaMbTT22';
 const TRADES_QUARTERLY_FOLDER_URL =
