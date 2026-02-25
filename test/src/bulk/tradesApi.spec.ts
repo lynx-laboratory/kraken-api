@@ -64,8 +64,8 @@ describe('bulk/tradesApi.ts - KrakenBulkTradesApi', () => {
     expect(base.downloadByFileId).toHaveBeenCalledWith(
       'trades',
       { type: 'complete' },
-      '1nB0_Bv6oFQfqYxhhYkPSWXMWQRxmhRUZ',
-      expect.stringContaining('/file/d/1nB0_Bv6oFQfqYxhhYkPSWXMWQRxmhRUZ/'),
+      '10zh3tDpqANYvVtYVgczwVz3UZFRUb1el',
+      expect.stringContaining('/file/d/10zh3tDpqANYvVtYVgczwVz3UZFRUb1el/'),
       undefined,
     );
   });
