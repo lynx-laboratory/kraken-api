@@ -1,6 +1,3 @@
-import path from 'node:path';
-import { readdir } from 'node:fs/promises';
-
 import type {
   KrakenBulkDownloadResult,
   KrakenBulkExtractResult,
@@ -122,11 +119,8 @@ export class KrakenBulkTradesApi {
     source: KrakenBulkSource = { type: 'complete' },
   ): Promise<string[]> {
     const extractedDir = this.base.extractedDir('trades', source);
-    if (!(await fileExists(extractedDir))) return [];
-
-    const files = await readdir(extractedDir);
+    const files = await this.base.listCsvFiles(extractedDir);
     return files
-      .filter((f) => f.toLowerCase().endsWith('.csv'))
       .map((f) => f.slice(0, -4))
       .sort();
   }
@@ -197,14 +191,16 @@ export class KrakenBulkTradesApi {
       return;
     }
 
-    const csvPath = path.join(extractedDir, `${q.pair}.csv`);
+    const csvPath = await this.base.resolveCsvPath(
+      extractedDir,
+      `${q.pair}.csv`,
+    );
 
-    if (!(await fileExists(csvPath))) {
+    if (!csvPath) {
       this.base.logger?.warn?.('Bulk trades CSV not found for pair', {
         source,
         extractedDir,
         pair: q.pair,
-        csvPath,
       });
       return;
     }

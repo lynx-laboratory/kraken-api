@@ -1,6 +1,3 @@
-import path from 'node:path';
-import { readdir } from 'node:fs/promises';
-
 import type {
   KrakenBulkDownloadResult,
   KrakenBulkExtractResult,
@@ -123,14 +120,10 @@ export class KrakenBulkOhlcvtApi {
     source: KrakenBulkSource = { type: 'complete' },
   ): Promise<string[]> {
     const extractedDir = this.base.extractedDir('ohlcvt', source);
-    if (!(await fileExists(extractedDir))) return [];
-
-    const files = await readdir(extractedDir);
+    const files = await this.base.listCsvFiles(extractedDir);
     const pairs = new Set<string>();
 
     for (const f of files) {
-      if (!f.toLowerCase().endsWith('.csv')) continue;
-
       const base = f.slice(0, -4);
       const idx = base.lastIndexOf('_');
       if (idx <= 0) continue;
@@ -156,13 +149,10 @@ export class KrakenBulkOhlcvtApi {
     source: KrakenBulkSource = { type: 'complete' },
   ): Promise<KrakenBulkOhlcInterval[]> {
     const extractedDir = this.base.extractedDir('ohlcvt', source);
-    if (!(await fileExists(extractedDir))) return [];
-
-    const files = await readdir(extractedDir);
+    const files = await this.base.listCsvFiles(extractedDir);
     const intervals = new Set<number>();
 
     for (const f of files) {
-      if (!f.toLowerCase().endsWith('.csv')) continue;
       if (!f.startsWith(`${pair}_`)) continue;
 
       const base = f.slice(0, -4);
@@ -248,15 +238,17 @@ export class KrakenBulkOhlcvtApi {
       return;
     }
 
-    const csvPath = path.join(extractedDir, `${q.pair}_${q.interval}.csv`);
+    const csvPath = await this.base.resolveCsvPath(
+      extractedDir,
+      `${q.pair}_${q.interval}.csv`,
+    );
 
-    if (!(await fileExists(csvPath))) {
+    if (!csvPath) {
       this.base.logger?.warn?.('Bulk OHLCVT CSV not found for pair/interval', {
         source,
         extractedDir,
         pair: q.pair,
         interval: q.interval,
-        csvPath,
       });
       return;
     }

@@ -496,6 +496,77 @@ export class KrakenBulkBase {
     return p;
   }
 
+  // ---------- CSV path resolution ----------
+
+  /**
+   * Resolve a CSV filename within an extracted directory.
+   * Checks the flat path first, then searches one level of subdirectories.
+   * Returns the resolved path or null if not found.
+   */
+  public async resolveCsvPath(
+    extractedDir: string,
+    filename: string,
+  ): Promise<string | null> {
+    // Fast path: flat layout
+    const flat = path.join(extractedDir, filename);
+    if (await fileExists(flat)) return flat;
+
+    // Search one level of subdirectories (e.g. TimeAndSales_Q3/, OHLCVT_Q3/)
+    let entries: string[];
+    try {
+      entries = await readdir(extractedDir);
+    } catch {
+      return null;
+    }
+
+    for (const entry of entries) {
+      if (entry.startsWith('.')) continue;
+      const sub = path.join(extractedDir, entry, filename);
+      if (await fileExists(sub)) return sub;
+    }
+
+    return null;
+  }
+
+  /**
+   * List all CSV files within an extracted directory, including one level of
+   * subdirectories. Returns filenames only (not full paths).
+   */
+  public async listCsvFiles(extractedDir: string): Promise<string[]> {
+    if (!(await fileExists(extractedDir))) return [];
+
+    const result: string[] = [];
+    let entries: string[];
+    try {
+      entries = await readdir(extractedDir);
+    } catch {
+      return [];
+    }
+
+    for (const entry of entries) {
+      if (entry.toLowerCase().endsWith('.csv')) {
+        result.push(entry);
+        continue;
+      }
+      if (entry.startsWith('.')) continue;
+
+      // Check subdirectory
+      const subDir = path.join(extractedDir, entry);
+      try {
+        const subEntries = await readdir(subDir);
+        for (const sub of subEntries) {
+          if (sub.toLowerCase().endsWith('.csv')) {
+            result.push(sub);
+          }
+        }
+      } catch {
+        // Not a directory or not readable — skip
+      }
+    }
+
+    return result;
+  }
+
   // ---------- misc ----------
 
   public async safeStatSize(p: string): Promise<number> {

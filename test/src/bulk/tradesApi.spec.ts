@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { KrakenBulkTradesApi } from '../../../src/bulk/tradesApi';
+import { fileExists } from '../../../src/utils/fs';
 
 async function mkTmpDir(prefix = 'kraken-trades-') {
   return await fs.mkdtemp(path.join(os.tmpdir(), prefix));
@@ -18,6 +19,56 @@ async function readAll<T>(it: AsyncIterable<T>): Promise<T[]> {
   const out: T[] = [];
   for await (const x of it) out.push(x);
   return out;
+}
+
+/** Real implementation of resolveCsvPath for tests that use temp dirs. */
+async function realResolveCsvPath(
+  extractedDir: string,
+  filename: string,
+): Promise<string | null> {
+  const flat = path.join(extractedDir, filename);
+  if (await fileExists(flat)) return flat;
+  let entries: string[];
+  try {
+    entries = await fs.readdir(extractedDir);
+  } catch {
+    return null;
+  }
+  for (const entry of entries) {
+    if (entry.startsWith('.')) continue;
+    const sub = path.join(extractedDir, entry, filename);
+    if (await fileExists(sub)) return sub;
+  }
+  return null;
+}
+
+/** Real implementation of listCsvFiles for tests that use temp dirs. */
+async function realListCsvFiles(extractedDir: string): Promise<string[]> {
+  if (!(await fileExists(extractedDir))) return [];
+  const result: string[] = [];
+  let entries: string[];
+  try {
+    entries = await fs.readdir(extractedDir);
+  } catch {
+    return [];
+  }
+  for (const entry of entries) {
+    if (entry.toLowerCase().endsWith('.csv')) {
+      result.push(entry);
+      continue;
+    }
+    if (entry.startsWith('.')) continue;
+    const subDir = path.join(extractedDir, entry);
+    try {
+      const subEntries = await fs.readdir(subDir);
+      for (const sub of subEntries) {
+        if (sub.toLowerCase().endsWith('.csv')) result.push(sub);
+      }
+    } catch {
+      // skip
+    }
+  }
+  return result;
 }
 
 function makeBase(overrides: any = {}) {
@@ -41,6 +92,8 @@ function makeBase(overrides: any = {}) {
     driveApiKeyEnvVar: vi.fn(() => 'ENV'),
     listDriveFolder: vi.fn(),
     extractedDir: vi.fn(),
+    resolveCsvPath: vi.fn(realResolveCsvPath),
+    listCsvFiles: vi.fn(realListCsvFiles),
     ...overrides,
   };
 
@@ -340,7 +393,6 @@ describe('bulk/tradesApi.ts - KrakenBulkTradesApi', () => {
       expect.objectContaining({
         pair: 'XBTUSD',
         extractedDir: extracted,
-        csvPath: path.join(extracted, 'XBTUSD.csv'),
       }),
     );
   });
