@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="142" height="20" role="img" aria-label="coverage: 99.10%">
+<svg xmlns="http://www.w3.org/2000/svg" width="142" height="20" role="img" aria-label="coverage: 97.85%">
   <linearGradient id="s" x2="0" y2="100%">
     <stop offset="0" stop-color="#fff" stop-opacity=".7"/>
     <stop offset=".1" stop-color="#aaa" stop-opacity=".1"/>
@@ -21,6 +21,6 @@
      font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji"
      font-size="11">
     <text x="34" y="14">coverage</text>
-    <text x="105" y="14">99.10%</text>
+    <text x="105" y="14">97.85%</text>
   </g>
 </svg>
